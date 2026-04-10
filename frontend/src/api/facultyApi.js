@@ -1,0 +1,38 @@
+import { apiFetch } from "./client";
+
+export const facultyApi = {
+  list: (token) => apiFetch("/faculty", { token }),
+  byId: (id, token) => apiFetch(`/faculty/${id}`, { token }),
+  update: (id, body, token) => apiFetch(`/faculty/${id}`, { method: "PUT", body, token }),
+  uploadPhoto: (id, body, token) => apiFetch(`/faculty/${id}/photo`, { method: "PUT", body, token }),
+  create: (body, token) => apiFetch("/faculty", { method: "POST", body, token }),
+};
+
+export const entryApi = {
+  list: (table, facultyId, token) => apiFetch(`/entries/${table}/${facultyId}`, { token }),
+  create: (table, body, token) => apiFetch(`/entries/${table}`, { method: "POST", body, token }),
+  update: (table, id, body, token) => apiFetch(`/entries/${table}/${id}`, { method: "PUT", body, token }),
+  remove: (table, id, token) => apiFetch(`/entries/${table}/${id}`, { method: "DELETE", token }),
+};
+
+export const authApi = {
+  login: (body) => apiFetch("/auth/login", { method: "POST", body }),
+  register: (body) => apiFetch("/auth/register", { method: "POST", body }),
+};
+
+export const adminApi = {
+  pending: (token) => apiFetch("/admin/pending", { token }),
+  audit: (token, limit = 100) => apiFetch(`/admin/audit?limit=${limit}`, { token }),
+  approve: (table, id, token) => apiFetch(`/admin/approve/${table}/${id}`, { method: "PUT", token }),
+  reject: (table, id, token) => apiFetch(`/admin/reject/${table}/${id}`, { method: "DELETE", token }),
+};
+
+export const reportApi = {
+  summary: (facultyId, token) => apiFetch(`/reports/faculty/${facultyId}`, { token }),
+  exportExcel: (facultyId, token) => apiFetch(`/reports/export/faculty/${facultyId}`, { token }),
+};
+
+export const notificationApi = {
+  list: (token) => apiFetch("/notifications", { token }),
+  markRead: (id, token) => apiFetch(`/notifications/${id}/read`, { method: "PUT", token }),
+};

@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: linear-gradient(150deg, #fff7db 0%, #fff4c4 35%, #fff8ea 100%);
+  color: #0f172a;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  transition: all 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.76), rgba(255, 244, 204, 0.55));
+  box-shadow: 0 20px 48px rgba(120, 80, 0, 0.16);
+}
+
+.smooth-fade {
+  animation: smoothFade 600ms ease-out;
+}
+
+.floaty {
+  animation: floaty 4.5s ease-in-out infinite;
+}
+
+@keyframes smoothFade {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.gold-button {
+  background: linear-gradient(145deg, #f6c034, #ffdd70);
+  border: 1px solid rgba(153, 108, 0, 0.28);
+  box-shadow: 0 8px 20px rgba(180, 133, 0, 0.28);
+}
