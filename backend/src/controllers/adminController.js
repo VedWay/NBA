@@ -2,6 +2,10 @@ import { supabaseAdmin } from "../db/supabase.js";
 
 const TABLES = ["faculty", "publications", "fdp", "projects", "patents", "books", "collaborations", "consultancy", "awards", "moocs", "qualifications", "research_proofs"];
 
+function rowLabel(row) {
+  return row.title || row.name || row.course || row.degree || "Untitled entry";
+}
+
 async function resolveRecipientUserId(table, record) {
   if (table === "faculty") {
     return record.user_id ?? null;
@@ -108,4 +112,125 @@ export async function getAuditTimeline(req, res) {
   }
 
   return res.json(data ?? []);
+}
+
+export async function getFacultyDirectory(_req, res) {
+  const { data, error } = await supabaseAdmin
+    .from("faculty")
+    .select("id,user_id,name,designation,department,email,photo_url,is_approved,created_at")
+    .order("name", { ascending: true });
+
+  if (error) {
+    return res.status(500).json({ message: error.message });
+  }
+
+  return res.json(data ?? []);
+}
+
+export async function getApprovalHistory(req, res) {
+  const limit = Math.min(Number(req.query.limit || 200), 1000);
+
+  const { data: facultyRows } = await supabaseAdmin
+    .from("faculty")
+    .select("id,name,designation,department,email,photo_url");
+
+  const facultyMap = new Map((facultyRows ?? []).map((f) => [f.id, f]));
+  const history = [];
+
+  for (const table of TABLES) {
+    const { data, error } = await supabaseAdmin
+      .from(table)
+      .select("id,faculty_id,approved_at,approved_by,created_at,title,name,course,degree")
+      .eq("is_approved", true)
+      .not("approved_at", "is", null)
+      .order("approved_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      return res.status(500).json({ message: error.message });
+    }
+
+    for (const row of data ?? []) {
+      const faculty = row.faculty_id ? facultyMap.get(row.faculty_id) : facultyMap.get(row.id);
+      history.push({
+        table,
+        id: row.id,
+        faculty_id: row.faculty_id,
+        approved_at: row.approved_at,
+        approved_by: row.approved_by,
+        created_at: row.created_at,
+        label: rowLabel(row),
+        faculty,
+      });
+    }
+  }
+
+  history.sort((a, b) => new Date(b.approved_at).getTime() - new Date(a.approved_at).getTime());
+
+  return res.json(history.slice(0, limit));
+}
+
+export async function removeEntryByAdmin(req, res) {
+  const { table, id } = req.params;
+  if (!TABLES.includes(table)) {
+    return res.status(400).json({ message: "Unsupported table" });
+  }
+
+  const { data: existing, error: readError } = await supabaseAdmin
+    .from(table)
+    .select("id,faculty_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (readError) {
+    return res.status(500).json({ message: readError.message });
+  }
+
+  if (!existing) {
+    return res.status(404).json({ message: "Entry not found" });
+  }
+
+  const { error } = await supabaseAdmin.from(table).delete().eq("id", id);
+  if (error) {
+    return res.status(500).json({ message: error.message });
+  }
+
+  const recipientUserId = await resolveRecipientUserId(table, existing);
+  await createNotification(recipientUserId, "Entry Removed", `An admin removed one ${table} record from your profile.`);
+
+  return res.status(204).send();
+}
+
+export async function removeFacultyByAdmin(req, res) {
+  const { id } = req.params;
+
+  const { data: faculty, error: facultyError } = await supabaseAdmin
+    .from("faculty")
+    .select("id,user_id,name")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (facultyError) {
+    return res.status(500).json({ message: facultyError.message });
+  }
+
+  if (!faculty) {
+    return res.status(404).json({ message: "Faculty not found" });
+  }
+
+  const { error } = await supabaseAdmin.from("faculty").delete().eq("id", id);
+  if (error) {
+    return res.status(500).json({ message: error.message });
+  }
+
+  if (faculty.user_id) {
+    await supabaseAdmin.from("users").delete().eq("auth_user_id", faculty.user_id);
+    await createNotification(
+      faculty.user_id,
+      "Profile Removed",
+      "Your faculty profile and attached records were removed by admin.",
+    );
+  }
+
+  return res.status(204).send();
 }

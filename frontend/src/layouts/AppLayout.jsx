@@ -1,19 +1,35 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { notificationApi } from "../api/facultyApi";
+import { facultyApi, notificationApi } from "../api/facultyApi";
 import { useState } from "react";
 
-const navItems = [
-  { label: "Home", to: "/" },
-  { label: "Viewer", to: "/viewer" },
-  { label: "Dashboard", to: "/dashboard" },
-];
-
 export default function AppLayout() {
-  const { isAuthenticated, role, logout, token } = useAuth();
-  const [open, setOpen] = useState(false);
+  const { isAuthenticated, role, logout, token, user } = useAuth();
+  const [openNotifications, setOpenNotifications] = useState(false);
+  const [openProfileMenu, setOpenProfileMenu] = useState(false);
   const queryClient = useQueryClient();
+
+  const navItems = [
+    { label: "Home", to: "/" },
+    { label: "Viewer", to: "/viewer" },
+    ...(isAuthenticated && role === "faculty" ? [{ label: "Dashboard", to: "/dashboard" }] : []),
+    ...(isAuthenticated && role === "admin" ? [{ label: "Requests", to: "/admin" }] : []),
+  ];
+
+  const { data: facultyList = [] } = useQuery({
+    queryKey: ["faculty", "topbar"],
+    queryFn: () => facultyApi.list(token),
+    enabled: Boolean(isAuthenticated && token && (role === "faculty" || role === "admin")),
+  });
+
+  const ownFaculty =
+    facultyList.find((f) => f.user_id === user?.id) ||
+    facultyList.find((f) => f.email?.toLowerCase() === user?.email?.toLowerCase()) ||
+    null;
+
+  const adminName = user?.email ? user.email.split("@")[0] : "Admin";
+  const adminPhoto = ownFaculty?.photo_url || "https://via.placeholder.com/40x40?text=A";
 
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications"],
@@ -54,10 +70,10 @@ export default function AppLayout() {
           <div className="flex items-center gap-3 text-sm">
             {isAuthenticated && (
               <div className="relative">
-                <button onClick={() => setOpen((v) => !v)} className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-slate-800">
+                <button onClick={() => setOpenNotifications((v) => !v)} className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-slate-800">
                   Notifications {unreadCount ? `(${unreadCount})` : ""}
                 </button>
-                {open && (
+                {openNotifications && (
                   <div className="absolute right-0 z-20 mt-2 w-80 rounded-lg border border-amber-200 bg-white/95 p-3 shadow-xl backdrop-blur">
                     <h3 className="mb-2 text-sm font-bold text-slate-700">Recent Notifications</h3>
                     <div className="max-h-64 space-y-2 overflow-auto">
@@ -77,6 +93,71 @@ export default function AppLayout() {
                 )}
               </div>
             )}
+
+            {isAuthenticated && role === "faculty" && ownFaculty && (
+              <div className="relative">
+                <button
+                  onClick={() => setOpenProfileMenu((v) => !v)}
+                  className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-2 py-1 hover:bg-slate-50"
+                >
+                  <img
+                    src={ownFaculty.photo_url || "https://via.placeholder.com/40x40?text=F"}
+                    alt={ownFaculty.name || "Profile"}
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                  <span className="max-w-40 truncate text-xs font-semibold text-slate-800">{ownFaculty.name}</span>
+                </button>
+                {openProfileMenu && (
+                  <div className="absolute right-0 z-20 mt-2 w-52 rounded border border-slate-200 bg-white p-2 shadow-lg">
+                    <Link
+                      to={`/faculty/${ownFaculty.id}`}
+                      onClick={() => setOpenProfileMenu(false)}
+                      className="block rounded px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                    >
+                      My Profile
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isAuthenticated && role === "admin" && (
+              <div className="relative">
+                <button
+                  onClick={() => setOpenProfileMenu((v) => !v)}
+                  className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-2 py-1 hover:bg-slate-50"
+                >
+                  <img src={adminPhoto} alt="Admin" className="h-8 w-8 rounded-full object-cover" />
+                  <span className="max-w-40 truncate text-xs font-semibold text-slate-800">{adminName}</span>
+                </button>
+                {openProfileMenu && (
+                  <div className="absolute right-0 z-20 mt-2 w-56 rounded border border-slate-200 bg-white p-2 shadow-lg">
+                    <Link
+                      to="/admin"
+                      onClick={() => setOpenProfileMenu(false)}
+                      className="block rounded px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                    >
+                      Approval Requests
+                    </Link>
+                    <Link
+                      to="/admin/history"
+                      onClick={() => setOpenProfileMenu(false)}
+                      className="block rounded px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                    >
+                      Past Approvals
+                    </Link>
+                    <Link
+                      to="/admin/faculty"
+                      onClick={() => setOpenProfileMenu(false)}
+                      className="block rounded px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                    >
+                      Faculty Directory
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
             <span className="rounded-full bg-slate-900 px-3 py-1 font-semibold text-white">
               {isAuthenticated ? role.toUpperCase() : "GUEST"}
             </span>

@@ -23,8 +23,12 @@ export const authApi = {
 export const adminApi = {
   pending: (token) => apiFetch("/admin/pending", { token }),
   audit: (token, limit = 100) => apiFetch(`/admin/audit?limit=${limit}`, { token }),
+  history: (token, limit = 200) => apiFetch(`/admin/history?limit=${limit}`, { token }),
+  faculty: (token) => apiFetch("/admin/faculty", { token }),
   approve: (table, id, token) => apiFetch(`/admin/approve/${table}/${id}`, { method: "PUT", token }),
   reject: (table, id, token) => apiFetch(`/admin/reject/${table}/${id}`, { method: "DELETE", token }),
+  removeDetail: (table, id, token) => apiFetch(`/admin/remove/${table}/${id}`, { method: "DELETE", token }),
+  removeFaculty: (id, token) => apiFetch(`/admin/faculty/${id}`, { method: "DELETE", token }),
 };
 
 export const reportApi = {

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import AdminPanel from "../components/AdminPanel";
 
-export default function AdminPage() {
+export default function AdminFacultyPage() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 md:px-8">
       <div className="mb-4 flex flex-wrap gap-2">
@@ -9,7 +9,7 @@ export default function AdminPage() {
         <Link to="/admin/history" className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Past Approvals</Link>
         <Link to="/admin/faculty" className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Faculty Directory</Link>
       </div>
-      <AdminPanel initialTab="pending" />
+      <AdminPanel initialTab="faculty" />
     </section>
   );
 }

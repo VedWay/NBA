@@ -1,14 +1,15 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useFacultyProfile } from "../hooks/useFaculty";
 import FacultyProfile from "../components/FacultyProfile";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
-import { entryApi, facultyApi } from "../api/facultyApi";
+import { adminApi, entryApi, facultyApi } from "../api/facultyApi";
 
 export default function FacultyProfilePage() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const { token, role, user } = useAuth();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
@@ -21,7 +22,16 @@ export default function FacultyProfilePage() {
       data.faculty.email.toLowerCase().trim() === user.email.toLowerCase().trim(),
   );
 
-  const canManage = Boolean(token && role !== "viewer" && data?.faculty && (role === "admin" || isOwnerById || isOwnerByEmail));
+  const viewerPreview = searchParams.get("preview") === "viewer";
+  const reviewPreview = searchParams.get("preview") === "review";
+  const reviewTable = searchParams.get("table") || "";
+  const reviewRequestId = searchParams.get("request") || "";
+  const reviewLabel = searchParams.get("label") || "Selected request";
+
+  const canManage =
+    !viewerPreview &&
+    !reviewPreview &&
+    Boolean(token && role !== "viewer" && data?.faculty && (role === "admin" || isOwnerById || isOwnerByEmail));
 
   const createEntry = useMutation({
     mutationFn: ({ table, body }) => entryApi.create(table, { ...body, faculty_id: id }, token),
@@ -75,11 +85,74 @@ export default function FacultyProfilePage() {
     setMessage(response?.photo_url ? "Photo uploaded successfully." : "Photo updated.");
   };
 
+  const approveReview = useMutation({
+    mutationFn: () => adminApi.approve(reviewTable, reviewRequestId, token),
+    onSuccess: () => {
+      setMessage("Approved successfully from review page.");
+      queryClient.invalidateQueries({ queryKey: ["faculty", id] });
+      queryClient.invalidateQueries({ queryKey: ["pending"] });
+      queryClient.invalidateQueries({ queryKey: ["approval-history"] });
+    },
+    onError: (err) => setMessage(err.message || "Unable to approve this request."),
+  });
+
+  const rejectReview = useMutation({
+    mutationFn: () => adminApi.reject(reviewTable, reviewRequestId, token),
+    onSuccess: () => {
+      setMessage("Rejected successfully from review page.");
+      queryClient.invalidateQueries({ queryKey: ["faculty", id] });
+      queryClient.invalidateQueries({ queryKey: ["pending"] });
+      queryClient.invalidateQueries({ queryKey: ["approval-history"] });
+    },
+    onError: (err) => setMessage(err.message || "Unable to reject this request."),
+  });
+
+  const removeReview = useMutation({
+    mutationFn: () => adminApi.removeDetail(reviewTable, reviewRequestId, token),
+    onSuccess: () => {
+      setMessage("Removed successfully from review page.");
+      queryClient.invalidateQueries({ queryKey: ["faculty", id] });
+      queryClient.invalidateQueries({ queryKey: ["pending"] });
+      queryClient.invalidateQueries({ queryKey: ["approval-history"] });
+    },
+    onError: (err) => setMessage(err.message || "Unable to remove this request."),
+  });
+
   if (isLoading) return <p className="px-4 py-10">Loading profile...</p>;
   if (error) return <p className="px-4 py-10 text-rose-600">{error.message}</p>;
 
   return (
     <DashboardLayout>
+      {reviewPreview && role === "admin" && reviewTable && reviewRequestId && (
+        <section className="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-3">
+          <p className="text-xs font-semibold uppercase text-blue-700">Admin Review Mode</p>
+          <h2 className="text-lg font-bold text-slate-800">{reviewLabel}</h2>
+          <p className="text-sm text-slate-600">Request Type: {reviewTable}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              className="rounded bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
+              onClick={() => approveReview.mutate()}
+              disabled={approveReview.isPending || rejectReview.isPending || removeReview.isPending}
+            >
+              Approve This Change
+            </button>
+            <button
+              className="rounded bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
+              onClick={() => rejectReview.mutate()}
+              disabled={approveReview.isPending || rejectReview.isPending || removeReview.isPending}
+            >
+              Reject This Change
+            </button>
+            <button
+              className="rounded border border-slate-400 px-3 py-2 text-sm font-semibold text-slate-700"
+              onClick={() => removeReview.mutate()}
+              disabled={approveReview.isPending || rejectReview.isPending || removeReview.isPending}
+            >
+              Remove This Change
+            </button>
+          </div>
+        </section>
+      )}
       <FacultyProfile
         data={data}
         canManage={canManage}
