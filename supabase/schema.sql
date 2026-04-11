@@ -278,6 +278,24 @@ create table if not exists public.notifications (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.latest_achievements (
+  id uuid primary key default gen_random_uuid(),
+  faculty_id uuid references public.faculty(id) on delete set null,
+  title text not null,
+  summary text,
+  media_type text not null check (media_type in ('image', 'pdf', 'youtube', 'link')),
+  media_url text not null,
+  thumbnail_url text,
+  display_order int not null default 0,
+  is_published boolean not null default true,
+  published_from timestamptz,
+  published_to timestamptz,
+  created_by uuid references auth.users(id),
+  updated_by uuid references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create or replace function public.set_updated_at()
 returns trigger as $$
 begin
@@ -329,6 +347,7 @@ call public.attach_triggers('moocs');
 call public.attach_triggers('research_proofs');
 call public.attach_triggers('miscellaneous_items');
 call public.attach_triggers('notifications');
+call public.attach_triggers('latest_achievements');
 
 create index if not exists idx_faculty_is_approved on public.faculty(is_approved);
 create index if not exists idx_publications_faculty on public.publications(faculty_id, is_approved);
@@ -350,6 +369,7 @@ alter table public.qualifications enable row level security;
 alter table public.research_proofs enable row level security;
 alter table public.miscellaneous_items enable row level security;
 alter table public.notifications enable row level security;
+alter table public.latest_achievements enable row level security;
 
 -- Public read only approved data
 drop policy if exists faculty_public_read on public.faculty;
@@ -390,6 +410,9 @@ create policy research_proofs_public_read on public.research_proofs for select u
 
 drop policy if exists miscellaneous_items_public_read on public.miscellaneous_items;
 create policy miscellaneous_items_public_read on public.miscellaneous_items for select using (is_approved = true);
+
+drop policy if exists latest_achievements_public_read on public.latest_achievements;
+create policy latest_achievements_public_read on public.latest_achievements for select using (is_published = true);
 
 -- Publishable-key backend mode policies.
 -- These allow backend API writes with anon key; role safety is enforced in backend JWT middleware.
@@ -437,6 +460,9 @@ create policy miscellaneous_items_anon_backend_all on public.miscellaneous_items
 
 drop policy if exists notifications_anon_backend_all on public.notifications;
 create policy notifications_anon_backend_all on public.notifications for all to anon using (true) with check (true);
+
+drop policy if exists latest_achievements_anon_backend_all on public.latest_achievements;
+create policy latest_achievements_anon_backend_all on public.latest_achievements for all to anon using (true) with check (true);
 
 -- Storage buckets for faculty media
 insert into storage.buckets (id, name, public)

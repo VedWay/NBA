@@ -47,8 +47,8 @@ export default function AppLayout() {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      <header className="border-b border-amber-200 bg-white/70 backdrop-blur-xl">
+    <div className="liquid-skin min-h-screen text-slate-900">
+      <header className="border-b border-amber-200/60 liquid-glass">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
           <Link to="/" className="flex items-center gap-3 text-xl font-extrabold tracking-tight text-slate-900">
             <img src={vjtiLogo} alt="VJTI" className="h-10 w-auto" />
@@ -60,8 +60,8 @@ export default function AppLayout() {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `rounded-sm px-3 py-2 text-sm font-semibold transition ${
-                    isActive ? "bg-amber-400 text-slate-900" : "text-slate-700 hover:bg-amber-100"
+                  `rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                    isActive ? "liquid-button" : "liquid-control text-slate-700 hover:bg-amber-100/80"
                   }`
                 }
               >
@@ -72,18 +72,18 @@ export default function AppLayout() {
           <div className="flex items-center gap-3 text-sm">
             {isAuthenticated && (
               <div className="relative">
-                <button onClick={() => setOpenNotifications((v) => !v)} className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-slate-800">
+                <button onClick={() => setOpenNotifications((v) => !v)} className="liquid-chip rounded-xl px-3 py-2 text-xs font-semibold text-slate-800">
                   Notifications {unreadCount ? `(${unreadCount})` : ""}
                 </button>
                 {openNotifications && (
-                  <div className="absolute right-0 z-20 mt-2 w-80 rounded-lg border border-amber-200 bg-white/95 p-3 shadow-xl backdrop-blur">
+                  <div className="liquid-glass absolute right-0 z-20 mt-2 w-80 rounded-xl p-3">
                     <h3 className="mb-2 text-sm font-bold text-slate-700">Recent Notifications</h3>
                     <div className="max-h-64 space-y-2 overflow-auto">
                       {notifications.map((n) => (
                         <button
                           key={n.id}
                           onClick={() => markRead.mutate(n.id)}
-                          className={`w-full rounded border px-2 py-2 text-left text-xs ${n.is_read ? "border-slate-200 bg-slate-50" : "border-amber-300 bg-amber-50"}`}
+                          className={`w-full rounded-xl border px-2 py-2 text-left text-xs ${n.is_read ? "liquid-control" : "liquid-chip"}`}
                         >
                           <p className="font-semibold text-slate-700">{n.title}</p>
                           <p className="text-slate-600">{n.message}</p>
@@ -100,7 +100,7 @@ export default function AppLayout() {
               <div className="relative">
                 <button
                   onClick={() => setOpenProfileMenu((v) => !v)}
-                  className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-2 py-1 hover:bg-slate-50"
+                  className="liquid-control flex items-center gap-2 rounded-full px-2 py-1 hover:bg-slate-50"
                 >
                   <img
                     src={ownFaculty.photo_url || "https://via.placeholder.com/40x40?text=F"}
@@ -110,11 +110,11 @@ export default function AppLayout() {
                   <span className="max-w-40 truncate text-xs font-semibold text-slate-800">{ownFaculty.name}</span>
                 </button>
                 {openProfileMenu && (
-                  <div className="absolute right-0 z-20 mt-2 w-52 rounded border border-slate-200 bg-white p-2 shadow-lg">
+                  <div className="liquid-glass absolute right-0 z-20 mt-2 w-52 rounded-xl p-2">
                     <Link
                       to={`/faculty/${ownFaculty.id}`}
                       onClick={() => setOpenProfileMenu(false)}
-                      className="block rounded px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                      className="liquid-control block rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                     >
                       My Profile
                     </Link>
@@ -127,38 +127,38 @@ export default function AppLayout() {
               <div className="relative">
                 <button
                   onClick={() => setOpenProfileMenu((v) => !v)}
-                  className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-2 py-1 hover:bg-slate-50"
+                  className="liquid-control flex items-center gap-2 rounded-full px-2 py-1 hover:bg-slate-50"
                 >
                   <img src={adminPhoto} alt="Admin" className="h-8 w-8 rounded-full object-cover" />
                   <span className="max-w-40 truncate text-xs font-semibold text-slate-800">{adminName}</span>
                 </button>
                 {openProfileMenu && (
-                  <div className="absolute right-0 z-20 mt-2 w-56 rounded border border-slate-200 bg-white p-2 shadow-lg">
+                  <div className="liquid-glass absolute right-0 z-20 mt-2 w-56 rounded-xl p-2">
                     <Link
                       to="/admin"
                       onClick={() => setOpenProfileMenu(false)}
-                      className="block rounded px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                      className="liquid-control block rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                     >
                       Approval Requests
                     </Link>
                     <Link
                       to="/admin/history"
                       onClick={() => setOpenProfileMenu(false)}
-                      className="block rounded px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                      className="liquid-control block rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                     >
                       Past Approvals
                     </Link>
                     <Link
                       to="/admin/faculty"
                       onClick={() => setOpenProfileMenu(false)}
-                      className="block rounded px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                      className="liquid-control block rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                     >
                       Faculty Directory
                     </Link>
                     <Link
                       to="/admin/query"
                       onClick={() => setOpenProfileMenu(false)}
-                      className="block rounded px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                      className="liquid-control block rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                     >
                       Query Search
                     </Link>
@@ -167,15 +167,15 @@ export default function AppLayout() {
               </div>
             )}
 
-            <span className="rounded-full bg-slate-900 px-3 py-1 font-semibold text-white">
+            <span className="liquid-chip rounded-full px-3 py-1 font-semibold">
               {isAuthenticated ? role.toUpperCase() : "GUEST"}
             </span>
             {isAuthenticated ? (
-              <button className="rounded border border-slate-300 px-3 py-2 hover:bg-slate-100" onClick={logout}>
+              <button className="liquid-control rounded-xl px-3 py-2 hover:bg-slate-100" onClick={logout}>
                 Logout
               </button>
             ) : (
-              <Link to="/login" className="rounded bg-amber-400 px-3 py-2 font-semibold hover:bg-amber-300">
+              <Link to="/login" className="liquid-button rounded-xl px-3 py-2 font-semibold">
                 Login
               </Link>
             )}

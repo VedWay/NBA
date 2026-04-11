@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { adminApi } from "../api/facultyApi";
+import { achievementApi, adminApi } from "../api/facultyApi";
 import { useAuth } from "../context/AuthContext";
 
 function labelForRow(row) {
@@ -23,12 +23,51 @@ function displayValue(value) {
   return String(value);
 }
 
+function AchievementPreview({ item }) {
+  if (item.media_type === "image") {
+    return <img src={item.media_url} alt={item.title} className="h-40 w-full rounded-xl object-cover" />;
+  }
+
+  if (item.media_type === "youtube") {
+    return (
+      <div className="liquid-control flex h-40 items-center justify-center rounded-xl px-3 text-xs font-semibold text-slate-700">
+        YouTube video configured
+      </div>
+    );
+  }
+
+  if (item.media_type === "pdf") {
+    return (
+      <div className="liquid-control flex h-40 items-center justify-center rounded-xl px-3 text-xs font-semibold text-slate-700">
+        PDF attached
+      </div>
+    );
+  }
+
+  return (
+    <div className="liquid-control flex h-40 items-center justify-center rounded-xl px-3 text-xs font-semibold text-slate-700">
+      External link attached
+    </div>
+  );
+}
+
 export default function AdminPanel({ initialTab = "pending" }) {
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState(initialTab);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [editingAchievementId, setEditingAchievementId] = useState("");
+  const [achievementForm, setAchievementForm] = useState({
+    faculty_id: "",
+    title: "",
+    summary: "",
+    media_type: "image",
+    media_url: "",
+    thumbnail_url: "",
+    display_order: 0,
+    is_published: true,
+  });
   const [filters, setFilters] = useState({
     designation: "all",
     department: "all",
@@ -56,6 +95,11 @@ export default function AdminPanel({ initialTab = "pending" }) {
   const { data: facultyDirectory = [] } = useQuery({
     queryKey: ["admin-faculty"],
     queryFn: () => adminApi.faculty(token),
+  });
+
+  const { data: achievements = [] } = useQuery({
+    queryKey: ["admin-achievements"],
+    queryFn: () => achievementApi.listAdmin(token),
   });
 
   const facultyMap = useMemo(() => new Map((facultyDirectory || []).map((f) => [f.id, f])), [facultyDirectory]);
@@ -188,6 +232,71 @@ export default function AdminPanel({ initialTab = "pending" }) {
     onError: (err) => setMessage(err.message || "Unable to remove faculty."),
   });
 
+  const saveAchievementMutation = useMutation({
+    mutationFn: (payload) => {
+      if (editingAchievementId) {
+        return achievementApi.update(editingAchievementId, payload, token);
+      }
+      return achievementApi.create(payload, token);
+    },
+    onSuccess: () => {
+      setMessage(editingAchievementId ? "Achievement updated." : "Achievement created.");
+      setEditingAchievementId("");
+      setAchievementForm({
+        faculty_id: "",
+        title: "",
+        summary: "",
+        media_type: "image",
+        media_url: "",
+        thumbnail_url: "",
+        display_order: 0,
+        is_published: true,
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-achievements"] });
+      queryClient.invalidateQueries({ queryKey: ["achievements", "public"] });
+    },
+    onError: (err) => setMessage(err.message || "Unable to save achievement."),
+  });
+
+  const removeAchievementMutation = useMutation({
+    mutationFn: (id) => achievementApi.remove(id, token),
+    onSuccess: () => {
+      setMessage("Achievement removed.");
+      queryClient.invalidateQueries({ queryKey: ["admin-achievements"] });
+      queryClient.invalidateQueries({ queryKey: ["achievements", "public"] });
+    },
+    onError: (err) => setMessage(err.message || "Unable to remove achievement."),
+  });
+
+  const startEditAchievement = (item) => {
+    setEditingAchievementId(item.id);
+    setAchievementForm({
+      faculty_id: item.faculty_id || "",
+      title: item.title || "",
+      summary: item.summary || "",
+      media_type: item.media_type || "image",
+      media_url: item.media_url || "",
+      thumbnail_url: item.thumbnail_url || "",
+      display_order: Number(item.display_order || 0),
+      is_published: Boolean(item.is_published),
+    });
+    setActiveTab("achievements");
+  };
+
+  const resetAchievementForm = () => {
+    setEditingAchievementId("");
+    setAchievementForm({
+      faculty_id: "",
+      title: "",
+      summary: "",
+      media_type: "image",
+      media_url: "",
+      thumbnail_url: "",
+      display_order: 0,
+      is_published: true,
+    });
+  };
+
   const closeDetails = () => setSelectedRequest(null);
 
   const selectedProfileId = selectedRequest
@@ -231,6 +340,12 @@ export default function AdminPanel({ initialTab = "pending" }) {
           className={`rounded px-4 py-2 text-sm font-semibold ${activeTab === "faculty" ? "bg-amber-400 text-slate-900" : "bg-white text-slate-700"}`}
         >
           Faculty Directory
+        </button>
+        <button
+          onClick={() => setActiveTab("achievements")}
+          className={`rounded px-4 py-2 text-sm font-semibold ${activeTab === "achievements" ? "bg-amber-400 text-slate-900" : "bg-white text-slate-700"}`}
+        >
+          Latest Achievements
         </button>
       </div>
 
@@ -375,6 +490,124 @@ export default function AdminPanel({ initialTab = "pending" }) {
               </div>
             ))}
             {!filteredFaculty.length && <p className="text-sm text-slate-500">No faculty entries found for selected filters.</p>}
+          </div>
+        </section>
+      )}
+
+      {activeTab === "achievements" && (
+        <section className="liquid-glass space-y-4 rounded-2xl p-4">
+          <h2 className="text-xl font-semibold text-slate-700">Manage Latest Achievements</h2>
+
+          <div className="liquid-panel grid grid-cols-1 gap-3 rounded-2xl p-3 md:grid-cols-2">
+            <input
+              className="liquid-control rounded-xl px-3 py-2"
+              placeholder="Title"
+              value={achievementForm.title}
+              onChange={(e) => setAchievementForm((s) => ({ ...s, title: e.target.value }))}
+            />
+            <select
+              className="liquid-control rounded-xl px-3 py-2"
+              value={achievementForm.faculty_id}
+              onChange={(e) => setAchievementForm((s) => ({ ...s, faculty_id: e.target.value }))}
+            >
+              <option value="">No linked faculty</option>
+              {facultyDirectory.map((f) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+            <textarea
+              className="liquid-control rounded-xl px-3 py-2 md:col-span-2"
+              rows={2}
+              placeholder="Summary"
+              value={achievementForm.summary}
+              onChange={(e) => setAchievementForm((s) => ({ ...s, summary: e.target.value }))}
+            />
+            <select
+              className="liquid-control rounded-xl px-3 py-2"
+              value={achievementForm.media_type}
+              onChange={(e) => setAchievementForm((s) => ({ ...s, media_type: e.target.value }))}
+            >
+              <option value="image">Image</option>
+              <option value="pdf">PDF</option>
+              <option value="youtube">YouTube</option>
+              <option value="link">External Link</option>
+            </select>
+            <input
+              className="liquid-control rounded-xl px-3 py-2"
+              placeholder="Display Order"
+              type="number"
+              value={achievementForm.display_order}
+              onChange={(e) => setAchievementForm((s) => ({ ...s, display_order: Number(e.target.value || 0) }))}
+            />
+            <input
+              className="liquid-control rounded-xl px-3 py-2 md:col-span-2"
+              placeholder="Media URL"
+              value={achievementForm.media_url}
+              onChange={(e) => setAchievementForm((s) => ({ ...s, media_url: e.target.value }))}
+            />
+            <input
+              className="liquid-control rounded-xl px-3 py-2 md:col-span-2"
+              placeholder="Thumbnail URL (optional)"
+              value={achievementForm.thumbnail_url}
+              onChange={(e) => setAchievementForm((s) => ({ ...s, thumbnail_url: e.target.value }))}
+            />
+            <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={achievementForm.is_published}
+                onChange={(e) => setAchievementForm((s) => ({ ...s, is_published: e.target.checked }))}
+              />
+              Publish to home page
+            </label>
+            <div className="flex gap-2 md:justify-end">
+              <button
+                className="liquid-control rounded-xl px-3 py-2 text-sm font-semibold text-slate-700"
+                onClick={resetAchievementForm}
+                type="button"
+              >
+                Reset
+              </button>
+              <button
+                className="liquid-button rounded-xl px-3 py-2 text-sm font-semibold"
+                onClick={() => saveAchievementMutation.mutate(achievementForm)}
+                disabled={saveAchievementMutation.isPending}
+                type="button"
+              >
+                {editingAchievementId ? "Update Achievement" : "Create Achievement"}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {achievements.map((item) => (
+              <div key={item.id} className="liquid-panel rounded-2xl p-3">
+                <AchievementPreview item={item} />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="mt-2">
+                    <p className="font-semibold text-slate-800">{item.title}</p>
+                    <p className="text-xs uppercase text-slate-500">{item.media_type} {item.is_published ? "| published" : "| hidden"}</p>
+                    {item.faculty?.name && <p className="text-xs text-slate-600">Faculty: {item.faculty.name}</p>}
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="liquid-control rounded-xl px-3 py-1 text-xs font-semibold text-slate-700" onClick={() => startEditAchievement(item)}>
+                      Edit
+                    </button>
+                    <button
+                      className="rounded-xl bg-rose-600 px-3 py-1 text-xs font-semibold text-white"
+                      onClick={() => removeAchievementMutation.mutate(item.id)}
+                      disabled={removeAchievementMutation.isPending}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                {item.summary && <p className="mt-2 text-sm text-slate-600">{item.summary}</p>}
+                <a href={item.media_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-blue-700 underline">
+                  Open Media
+                </a>
+              </div>
+            ))}
+            {!achievements.length && <p className="text-sm text-slate-500">No achievements created yet.</p>}
           </div>
         </section>
       )}

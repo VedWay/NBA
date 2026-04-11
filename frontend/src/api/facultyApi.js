@@ -47,3 +47,11 @@ export const notificationApi = {
   list: (token) => apiFetch("/notifications", { token }),
   markRead: (id, token) => apiFetch(`/notifications/${id}/read`, { method: "PUT", token }),
 };
+
+export const achievementApi = {
+  listPublic: () => apiFetch("/achievements/public"),
+  listAdmin: (token) => apiFetch("/achievements/admin", { token }),
+  create: (body, token) => apiFetch("/achievements/admin", { method: "POST", body, token }),
+  update: (id, body, token) => apiFetch(`/achievements/admin/${id}`, { method: "PUT", body, token }),
+  remove: (id, token) => apiFetch(`/achievements/admin/${id}`, { method: "DELETE", token }),
+};

@@ -28,6 +28,13 @@ export async function apiFetch(path, options = {}) {
     try {
       const payload = await response.json();
       message = payload.message || message;
+      const fieldErrors = payload?.errors?.fieldErrors || {};
+      const details = Object.entries(fieldErrors)
+        .flatMap(([field, issues]) => (issues || []).map((issue) => `${field}: ${issue}`))
+        .filter(Boolean);
+      if (details.length) {
+        message = `${message} (${details.join("; ")})`;
+      }
     } catch {
       message = response.statusText || message;
     }

@@ -140,7 +140,7 @@ export async function getApprovalHistory(req, res) {
   for (const table of TABLES) {
     const { data, error } = await supabaseAdmin
       .from(table)
-      .select("id,faculty_id,approved_at,approved_by,created_at,title,name,course,degree")
+      .select("*")
       .eq("is_approved", true)
       .not("approved_at", "is", null)
       .order("approved_at", { ascending: false })
@@ -277,7 +277,7 @@ export async function queryFacultyKnowledge(req, res) {
 
     const { data, error } = await supabaseAdmin
       .from(table)
-      .select("id,faculty_id,title,name,course,degree,description,status,membership,honors,contributions,reference_url,pdf_url,created_at,is_approved");
+      .select("*");
 
     if (error) {
       return res.status(500).json({ message: error.message });

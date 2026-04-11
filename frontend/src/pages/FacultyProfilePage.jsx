@@ -7,6 +7,24 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
 import { adminApi, entryApi, facultyApi } from "../api/facultyApi";
 
+function normalizeUrl(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (/^https?:\/\//i.test(text)) return text;
+  return `https://${text}`;
+}
+
+function normalizeEntryPayload(body = {}) {
+  const payload = { ...body };
+  const urlKeys = ["reference_url", "pdf_url", "proof_url"];
+  for (const key of urlKeys) {
+    if (key in payload) {
+      payload[key] = normalizeUrl(payload[key]);
+    }
+  }
+  return payload;
+}
+
 export default function FacultyProfilePage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -34,7 +52,7 @@ export default function FacultyProfilePage() {
     Boolean(token && role !== "viewer" && data?.faculty && (role === "admin" || isOwnerById || isOwnerByEmail));
 
   const createEntry = useMutation({
-    mutationFn: ({ table, body }) => entryApi.create(table, { ...body, faculty_id: id }, token),
+    mutationFn: ({ table, body }) => entryApi.create(table, { ...normalizeEntryPayload(body), faculty_id: id }, token),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["faculty", id] });
       queryClient.invalidateQueries({ queryKey: ["faculty"] });
@@ -44,7 +62,7 @@ export default function FacultyProfilePage() {
   });
 
   const updateEntry = useMutation({
-    mutationFn: ({ table, rowId, body }) => entryApi.update(table, rowId, body, token),
+    mutationFn: ({ table, rowId, body }) => entryApi.update(table, rowId, normalizeEntryPayload(body), token),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["faculty", id] });
       setMessage("Updated successfully. Changes are pending admin approval.");

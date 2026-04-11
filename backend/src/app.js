@@ -10,6 +10,7 @@ import publicationRoutes from "./routes/publicationRoutes.js";
 import fdpRoutes from "./routes/fdpRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import achievementRoutes from "./routes/achievementRoutes.js";
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use("/entries", entryRoutes);
 app.use("/admin", adminRoutes);
 app.use("/reports", reportRoutes);
 app.use("/notifications", notificationRoutes);
+app.use("/achievements", achievementRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
