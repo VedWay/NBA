@@ -108,6 +108,76 @@ function GlobeIcon() {
   );
 }
 
+function normalizePersonName(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function splitAuthorNames(authors) {
+  if (!authors) return [];
+  const tokens = String(authors)
+    .split(/,|;|\||&|\band\b/gi)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 2);
+  return Array.from(new Set(tokens));
+}
+
+function formatPublicationType(type) {
+  const raw = String(type || "journal").trim().toLowerCase();
+  if (!raw) return "Journal";
+  return raw
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+function shortName(value, max = 16) {
+  const text = String(value || "").trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1)}...`;
+}
+
+function buildPublicationAnalytics(publications = [], facultyName = "") {
+  const yearMap = new Map();
+  const typeMap = new Map();
+  const coAuthorMap = new Map();
+  const facultyNormalized = normalizePersonName(facultyName);
+
+  for (const item of publications) {
+    const numericYear = Number(item?.year);
+    if (Number.isFinite(numericYear) && numericYear > 1900) {
+      yearMap.set(numericYear, (yearMap.get(numericYear) || 0) + 1);
+    }
+
+    const typeLabel = formatPublicationType(item?.type);
+    typeMap.set(typeLabel, (typeMap.get(typeLabel) || 0) + 1);
+
+    const authors = splitAuthorNames(item?.authors);
+    for (const author of authors) {
+      const normalized = normalizePersonName(author);
+      if (!normalized || normalized === facultyNormalized) continue;
+      const current = coAuthorMap.get(author) || 0;
+      coAuthorMap.set(author, current + 1);
+    }
+  }
+
+  const yearTrend = Array.from(yearMap.entries())
+    .map(([year, count]) => ({ year, count }))
+    .sort((a, b) => a.year - b.year);
+
+  const typeStats = Array.from(typeMap.entries())
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count);
+
+  const coAuthors = Array.from(coAuthorMap.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return { yearTrend, typeStats, coAuthors };
+}
+
 export default function FacultyProfile({
   data,
   canManage = false,
@@ -360,6 +430,23 @@ export default function FacultyProfile({
   const awardItems = awards.filter((a) => !a.honors && !a.membership && !a.contributions);
   const conferenceItems = publications.filter((item) => String(item.type || "").toLowerCase() === "conference");
   const publicationItems = publications.filter((item) => String(item.type || "").toLowerCase() !== "conference");
+  const publicationAnalytics = useMemo(
+    () => buildPublicationAnalytics(publications, faculty?.name || ""),
+    [publications, faculty?.name],
+  );
+  const maxTrendCount = Math.max(1, ...publicationAnalytics.yearTrend.map((item) => item.count));
+  const maxCoAuthorCount = Math.max(1, ...publicationAnalytics.coAuthors.map((item) => item.count));
+  const networkNodes = publicationAnalytics.coAuthors.slice(0, 24).map((item, index, array) => {
+    const centerX = 280;
+    const centerY = 190;
+    const radius = 150;
+    const angle = (2 * Math.PI * index) / Math.max(array.length, 1) - Math.PI / 2;
+    return {
+      ...item,
+      x: centerX + radius * Math.cos(angle),
+      y: centerY + radius * Math.sin(angle),
+    };
+  });
   const filteredUpdates = requestUpdates.filter((item) => {
     if (updatesTab === "all") return true;
     if (updatesTab === "rejected") return item.status === "rejected";
@@ -518,6 +605,93 @@ export default function FacultyProfile({
 
       <Section id="biosketch" title="Biosketch" canManage={false}>
         <p className="leading-7 text-slate-700">{faculty.bio || "No biography provided"}</p>
+      </Section>
+
+      <Section id="publication-analytics" title="Publication Analytics" canManage={false}>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <article className="rounded border border-slate-300 bg-white p-4">
+            <h3 className="text-lg font-bold text-slate-800">Publication Trend by Year</h3>
+            {publicationAnalytics.yearTrend.length ? (
+              <>
+                <div className="mt-3 flex items-end gap-2 overflow-x-auto rounded border border-slate-200 bg-slate-50 px-3 pb-3 pt-4">
+                  {publicationAnalytics.yearTrend.map((item) => {
+                    const barHeight = Math.max(12, Math.round((item.count / maxTrendCount) * 140));
+                    return (
+                      <div key={`year-${item.year}`} className="flex min-w-[36px] flex-col items-center gap-1">
+                        <span className="text-[10px] font-semibold text-slate-700">{item.count}</span>
+                        <div className="w-5 rounded-t bg-blue-600" style={{ height: `${barHeight}px` }} />
+                        <span className="text-[10px] text-slate-600">{item.year}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {publicationAnalytics.typeStats.map((item) => (
+                    <span key={`type-${item.type}`} className="rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
+                      {item.type}: {item.count}
+                    </span>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-slate-500">No publication data available for graph generation.</p>
+            )}
+          </article>
+
+          <article className="rounded border border-slate-300 bg-white p-4">
+            <h3 className="text-lg font-bold text-slate-800">Co-author Network</h3>
+            {networkNodes.length ? (
+              <div className="mt-3 overflow-x-auto rounded border border-slate-200 bg-slate-50 p-2">
+                <svg viewBox="0 0 560 380" className="h-[360px] w-full min-w-[520px]">
+                  <defs>
+                    <linearGradient id="coAuthorCenter" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#c3475b" />
+                      <stop offset="100%" stopColor="#7f1022" />
+                    </linearGradient>
+                  </defs>
+
+                  {networkNodes.map((node) => (
+                    <line
+                      key={`edge-${node.name}`}
+                      x1="280"
+                      y1="190"
+                      x2={node.x}
+                      y2={node.y}
+                      stroke="#9aa4b2"
+                      strokeOpacity="0.45"
+                      strokeWidth={1 + (node.count / maxCoAuthorCount) * 3}
+                    />
+                  ))}
+
+                  {networkNodes.map((node) => (
+                    <g key={`node-${node.name}`}>
+                      <circle cx={node.x} cy={node.y} r={4 + (node.count / maxCoAuthorCount) * 5} fill="#1f4b99" />
+                      <text
+                        x={node.x + (node.x >= 280 ? 8 : -8)}
+                        y={node.y + 3}
+                        textAnchor={node.x >= 280 ? "start" : "end"}
+                        className="fill-slate-700"
+                        fontSize="10"
+                      >
+                        {shortName(node.name, 18)} ({node.count})
+                      </text>
+                    </g>
+                  ))}
+
+                  <circle cx="280" cy="190" r="34" fill="url(#coAuthorCenter)" />
+                  <text x="280" y="186" textAnchor="middle" className="fill-white" fontSize="12" fontWeight="700">
+                    Faculty
+                  </text>
+                  <text x="280" y="202" textAnchor="middle" className="fill-white" fontSize="11">
+                    {shortName(faculty?.name || "", 14)}
+                  </text>
+                </svg>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-slate-500">No co-author data available yet. Add publication authors to see this graph.</p>
+            )}
+          </article>
+        </div>
       </Section>
 
       <Section id="qualifications" title="Education" canManage={canManage} onAddClick={() => openAddForm("qualifications")}>
