@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import Toast from "../components/Toast";
 import { WS_BASE_URL } from "../api/client";
 import vjtiLogoEnglish from "../assets/vjti-logo-english.png";
+import vjtiLogoMarathi from "../assets/logo-light.gif";
+import adminBasePhoto from "../assets/admin-base-photo.svg";
 import {
   getStoredNotifications,
   markAllStoredNotificationsRead,
@@ -25,6 +27,7 @@ export default function AppLayout() {
   const [notificationFilter, setNotificationFilter] = useState("all");
   const [toasts, setToasts] = useState([]);
   const [cachedNotifications, setCachedNotifications] = useState([]);
+  const [showEnglishLogo, setShowEnglishLogo] = useState(true);
 
   const previousNotificationsRef = useRef(null);
   const queryClient = useQueryClient();
@@ -32,7 +35,7 @@ export default function AppLayout() {
 
   const routeNavItems = [
     { label: "Home", to: "/" },
-    { label: "Viewer", to: "/viewer" },
+    { label: "Faculty", to: "/viewer" },
     ...(isAuthenticated && role === "faculty" ? [{ label: "Dashboard", to: "/dashboard" }] : []),
     ...(isAuthenticated && role === "admin" ? [{ label: "Requests", to: "/admin" }] : []),
   ];
@@ -49,7 +52,7 @@ export default function AppLayout() {
     null;
 
   const adminName = user?.email ? user.email.split("@")[0] : "Admin";
-  const adminPhoto = ownFaculty?.photo_url || "https://via.placeholder.com/40x40?text=A";
+  const adminPhoto = ownFaculty?.photo_url || adminBasePhoto;
 
   const {
     data: notificationsData = [],
@@ -95,6 +98,16 @@ export default function AppLayout() {
     setOpenNotifications(false);
     setOpenProfileMenu(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setShowEnglishLogo((current) => !current);
+    }, 2000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const markRead = useMutation({
     mutationFn: (id) => notificationApi.markRead(id, token),
@@ -287,7 +300,11 @@ export default function AppLayout() {
       <header className="campus-header-shell sticky top-0 z-40 border-b border-slate-300 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-8">
           <Link to="/" className="flex min-w-0 items-center">
-            <img src={vjtiLogoEnglish} alt="VJTI" className="h-12 w-auto md:h-14" />
+            <img
+              src={showEnglishLogo ? vjtiLogoEnglish : vjtiLogoMarathi}
+              alt={showEnglishLogo ? "VJTI English Logo" : "VJTI Marathi Logo"}
+              className="h-12 w-auto md:h-14"
+            />
           </Link>
 
           <nav className="hidden items-center gap-2 md:flex">

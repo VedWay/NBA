@@ -10,6 +10,7 @@ export default function AdminQueryPage() {
     q: "",
     designation: "",
     department: "",
+    year: "",
     table: "all",
     status: "all",
     from: "",
@@ -56,6 +57,15 @@ export default function AdminQueryPage() {
             className="rounded border px-3 py-2"
             placeholder="Department"
           />
+          <input
+            type="number"
+            min="1900"
+            max="2100"
+            value={filters.year}
+            onChange={(e) => setFilters((s) => ({ ...s, year: e.target.value }))}
+            className="rounded border px-3 py-2"
+            placeholder="Year (e.g. 2025)"
+          />
           <select value={filters.table} onChange={(e) => setFilters((s) => ({ ...s, table: e.target.value }))} className="rounded border px-3 py-2">
             <option value="all">All Tables</option>
             <option value="faculty">Faculty</option>
@@ -74,7 +84,7 @@ export default function AdminQueryPage() {
           <input type="date" value={filters.from} onChange={(e) => setFilters((s) => ({ ...s, from: e.target.value }))} className="rounded border px-3 py-2" />
           <input type="date" value={filters.to} onChange={(e) => setFilters((s) => ({ ...s, to: e.target.value }))} className="rounded border px-3 py-2" />
           <button
-            onClick={() => setFilters({ q: "", designation: "", department: "", table: "all", status: "all", from: "", to: "" })}
+            onClick={() => setFilters({ q: "", designation: "", department: "", year: "", table: "all", status: "all", from: "", to: "" })}
             className="rounded border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
           >
             Reset

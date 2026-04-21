@@ -355,6 +355,8 @@ export async function queryFacultyKnowledge(req, res) {
   const department = String(req.query.department || "").trim().toLowerCase();
   const tableFilter = String(req.query.table || "all").trim().toLowerCase();
   const statusFilter = String(req.query.status || "all").trim().toLowerCase();
+  const yearRaw = Number(req.query.year);
+  const yearFilter = Number.isFinite(yearRaw) && yearRaw > 0 ? Math.trunc(yearRaw) : null;
   const from = req.query.from ? new Date(String(req.query.from)) : null;
   const to = req.query.to ? new Date(String(req.query.to)) : null;
   const limit = Math.min(Number(req.query.limit || 300), 1000);
@@ -380,6 +382,7 @@ export async function queryFacultyKnowledge(req, res) {
           id: f.id,
           faculty_id: f.id,
           created_at: f.created_at,
+          year: f.created_at ? new Date(f.created_at).getFullYear() : null,
           is_approved: Boolean(f.is_approved),
           label: f.name,
           search_blob: [f.name, f.email, f.research_area, f.bio, f.department, f.designation].join(" "),
@@ -399,11 +402,14 @@ export async function queryFacultyKnowledge(req, res) {
 
     for (const row of data ?? []) {
       const faculty = facultyMap.get(row.faculty_id) || null;
+      const explicitYear = Number.isFinite(Number(row.year)) ? Math.trunc(Number(row.year)) : null;
+      const createdYear = row.created_at ? new Date(row.created_at).getFullYear() : null;
       records.push({
         table,
         id: row.id,
         faculty_id: row.faculty_id,
         created_at: row.created_at,
+        year: explicitYear ?? createdYear,
         is_approved: Boolean(row.is_approved),
         label: rowLabel(row),
         search_blob: [
@@ -431,6 +437,7 @@ export async function queryFacultyKnowledge(req, res) {
     const faculty = item.faculty;
     if (designation && !String(faculty?.designation || "").toLowerCase().includes(designation)) return false;
     if (department && !String(faculty?.department || "").toLowerCase().includes(department)) return false;
+    if (yearFilter && Number(item.year) !== yearFilter) return false;
 
     if (statusFilter === "approved" && !item.is_approved) return false;
     if (statusFilter === "pending" && item.is_approved) return false;
