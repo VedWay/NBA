@@ -2,7 +2,7 @@
 
 Full-stack portal for NBA accreditation data management with role-based access and admin approval workflow.
 
-## Tech Stack
+## Tech  Stack
 
 - Frontend: React (Vite), Tailwind CSS, React Router, React Hook Form, TanStack Query, Zod
 - Backend: Node.js, Express.js, Supabase (PostgreSQL/Auth/Storage), Zod
