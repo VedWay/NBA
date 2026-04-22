@@ -266,29 +266,15 @@ export async function uploadFacultyPhoto(req, res) {
     return res.status(400).json({ message: "Photo must be a valid base64 image data URL" });
   }
 
-  const contentType = matches[1];
   const fileBase64 = matches[2];
 
-  let fileBuffer;
   try {
-    fileBuffer = Buffer.from(fileBase64, "base64");
+    Buffer.from(fileBase64, "base64");
   } catch {
     return res.status(400).json({ message: "Unable to decode image payload" });
   }
 
-  const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
-  const sanitizedName = parsed.data.file_name.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/\.[a-zA-Z0-9]+$/, "");
-  const filePath = `${id}/${Date.now()}-${sanitizedName}.${ext}`;
-
-  const { error: uploadError } = await supabaseAdmin.storage
-    .from("faculty-photos")
-    .upload(filePath, fileBuffer, { contentType, upsert: true });
-
-  let photoUrl = dataUrl;
-  if (!uploadError) {
-    const { data: publicUrlData } = supabaseAdmin.storage.from("faculty-photos").getPublicUrl(filePath);
-    photoUrl = publicUrlData.publicUrl;
-  }
+  const photoUrl = dataUrl;
 
   const { data: updated, error: updateError } = await supabaseAdmin
     .from("faculty")

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { supabaseAdmin } from "../db/supabase.js";
+import { dbQuery, supabaseAdmin } from "../db/supabase.js";
 
 const mediaTypes = ["image", "pdf", "youtube", "link"];
 
@@ -21,12 +21,32 @@ function toNullable(value) {
   return value;
 }
 
+async function attachFaculty(rows) {
+  const uniqueFacultyIds = Array.from(new Set((rows || []).map((row) => row.faculty_id).filter(Boolean)));
+
+  if (!uniqueFacultyIds.length) {
+    return (rows || []).map((row) => ({ ...row, faculty: null }));
+  }
+
+  const placeholders = uniqueFacultyIds.map(() => "?").join(",");
+  const facultyRows = await dbQuery(
+    `SELECT id, name, designation, department, photo_url FROM faculty WHERE id IN (${placeholders})`,
+    uniqueFacultyIds,
+  );
+
+  const facultyMap = new Map((facultyRows || []).map((faculty) => [faculty.id, faculty]));
+  return (rows || []).map((row) => ({
+    ...row,
+    faculty: row.faculty_id ? facultyMap.get(row.faculty_id) || null : null,
+  }));
+}
+
 export async function listPublicAchievements(_req, res) {
   const nowTs = Date.now();
 
   const { data, error } = await supabaseAdmin
     .from("latest_achievements")
-    .select("id,faculty_id,title,summary,media_type,media_url,thumbnail_url,display_order,published_from,published_to,created_at,faculty:faculty_id(id,name,designation,department,photo_url)")
+    .select("id,faculty_id,title,summary,media_type,media_url,thumbnail_url,display_order,published_from,published_to,created_at")
     .eq("is_published", true)
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: false });
@@ -35,19 +55,20 @@ export async function listPublicAchievements(_req, res) {
     return res.status(500).json({ message: error.message });
   }
 
-  const rows = (data ?? []).filter((row) => {
+  const visibleRows = (data ?? []).filter((row) => {
     const fromOk = !row.published_from || new Date(row.published_from).getTime() <= nowTs;
     const toOk = !row.published_to || new Date(row.published_to).getTime() >= nowTs;
     return fromOk && toOk;
   });
 
-  return res.json(rows.slice(0, 12));
+  const rows = await attachFaculty(visibleRows.slice(0, 12));
+  return res.json(rows);
 }
 
 export async function listAchievementsAdmin(_req, res) {
   const { data, error } = await supabaseAdmin
     .from("latest_achievements")
-    .select("id,faculty_id,title,summary,media_type,media_url,thumbnail_url,display_order,is_published,published_from,published_to,created_at,updated_at,faculty:faculty_id(id,name,designation,department,photo_url)")
+    .select("id,faculty_id,title,summary,media_type,media_url,thumbnail_url,display_order,is_published,published_from,published_to,created_at,updated_at")
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: false });
 
@@ -55,7 +76,8 @@ export async function listAchievementsAdmin(_req, res) {
     return res.status(500).json({ message: error.message });
   }
 
-  return res.json(data ?? []);
+  const rows = await attachFaculty(data ?? []);
+  return res.json(rows);
 }
 
 export async function createAchievement(req, res) {
@@ -77,14 +99,15 @@ export async function createAchievement(req, res) {
   const { data, error } = await supabaseAdmin
     .from("latest_achievements")
     .insert(payload)
-    .select("*,faculty:faculty_id(id,name,designation,department,photo_url)")
+    .select("*")
     .single();
 
   if (error) {
     return res.status(500).json({ message: error.message });
   }
 
-  return res.status(201).json(data);
+  const [row] = await attachFaculty([data]);
+  return res.status(201).json(row);
 }
 
 export async function updateAchievement(req, res) {
@@ -109,14 +132,15 @@ export async function updateAchievement(req, res) {
     .from("latest_achievements")
     .update(updatePayload)
     .eq("id", id)
-    .select("*,faculty:faculty_id(id,name,designation,department,photo_url)")
+    .select("*")
     .single();
 
   if (error) {
     return res.status(500).json({ message: error.message });
   }
 
-  return res.json(data);
+  const [row] = await attachFaculty([data]);
+  return res.json(row);
 }
 
 export async function deleteAchievement(req, res) {

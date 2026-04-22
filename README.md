@@ -5,33 +5,37 @@ Full-stack portal for NBA accreditation data management with role-based access a
 ## Tech  Stack
 
 - Frontend: React (Vite), Tailwind CSS, React Router, React Hook Form, TanStack Query, Zod
-- Backend: Node.js, Express.js, Supabase (PostgreSQL/Auth/Storage), Zod
+- Backend: Node.js, Express.js, MySQL, Zod
 - Reporting: Excel export via xlsx
 
 ## Workspace Structure
 
 - frontend: React application
 - backend: Express API server
-- supabase/schema.sql: Database schema and audit triggers
-- supabase/seed.sql: Seed sample data
+- database/schema.sql: MySQL schema
+- database/seed.sql: Seed sample data
 
 ## Quick Start
 
-### 1) Supabase setup
+### 1) MySQL setup
 
-1. Create a Supabase project.
+1. Create a MySQL database (for example `nba`).
 2. Run SQL in this order:
-   - supabase/schema.sql
-   - supabase/seed.sql
-3. Create auth users in Supabase Auth and update auth_user_id values in seed.sql (or insert your own users in public.users).
+   - database/schema.sql
+   - database/seed.sql
+3. Optional: import data snapshot files from `database/*_rows.sql`.
 
 ### 2) Backend
 
 1. Copy backend/.env.example to backend/.env.
 2. Fill keys:
-   - SUPABASE_URL
-   - SUPABASE_ANON_KEY
-   - SUPABASE_SERVICE_ROLE_KEY
+   - MYSQL_HOST
+   - MYSQL_PORT
+   - MYSQL_USER
+   - MYSQL_PASSWORD
+   - MYSQL_DATABASE
+   - JWT_SECRET
+   - ADMIN_SIGNUP_CODE (optional)
 3. Install and run:
    - npm install
    - npm run dev
@@ -39,7 +43,7 @@ Full-stack portal for NBA accreditation data management with role-based access a
 ### 3) Frontend
 
 1. Copy frontend/.env.example to frontend/.env.
-2. Set VITE_API_BASE_URL to backend URL (default http://localhost:5000).
+2. Set VITE_API_BASE_URL to backend URL (default http://localhost:4000).
 3. Install and run:
    - npm install
    - npm run dev
@@ -91,16 +95,10 @@ Full-stack portal for NBA accreditation data management with role-based access a
 
 - Only approved faculty records are visible publicly.
 - Faculty edits are marked pending unless submitted by admin.
-- Audit history is recorded in public.audit_log.
+- Audit history is recorded in audit_log.
 - CV auto-generation is available in the dashboard as downloadable text format.
 
 ## JWT and Buckets
 
-- JWT secret is managed by Supabase in project settings and is not stored in this repo.
 - Backend now issues and validates its own JWT for API auth/roles using JWT_SECRET.
-- In publishable-key mode, SUPABASE_ANON_KEY is enough to run the API after applying schema.sql policies.
-- SUPABASE_SERVICE_ROLE_KEY remains optional and can be used later for stricter admin operations.
-- Storage buckets are defined in supabase/schema.sql:
-   - faculty-photos (public)
-   - faculty-cv (private)
-- Bucket env placeholders are available in backend/.env.example and frontend/.env.example.
+- Faculty photo uploads now persist directly in `faculty.photo_url`.

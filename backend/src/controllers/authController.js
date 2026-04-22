@@ -1,12 +1,12 @@
 import { supabaseAdmin } from "../db/supabase.js";
+import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { emitToUser } from "../realtime/wsHub.js";
 
 const jwtSecret = process.env.JWT_SECRET || "dev-nba-jwt-secret";
 const adminSignupCode = process.env.ADMIN_SIGNUP_CODE || "";
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -23,84 +23,32 @@ const registerSchema = z.object({
   phone: z.string().optional().default("+91 0000000000"),
 });
 
-function mapSupabaseNetworkError(error) {
-  const message = String(error?.message || "");
-  const causeMessage = String(error?.cause?.message || "");
-  const code = error?.cause?.code;
-
-  if (message.includes("fetch failed") || code === "ENOTFOUND" || causeMessage.includes("ENOTFOUND")) {
-    return "Supabase is unreachable. Check SUPABASE_URL in backend/.env (host not found) and your internet connection.";
-  }
-
-  return null;
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
 }
 
-function mapSupabaseAuthError(error) {
-  const message = String(error?.message || "").toLowerCase();
-  if (message.includes("rate limit") || message.includes("email rate limit exceeded")) {
-    return {
-      status: 429,
-      message:
-        "Email rate limit exceeded. Wait a minute and retry, or reduce email confirmation traffic in Supabase Auth settings.",
-    };
-  }
-  return null;
-}
+async function syncUserRoleRow({ authUserId, email, role, passwordHash }) {
+  const normalizedEmail = normalizeEmail(email);
+  const payload = {
+    auth_user_id: authUserId,
+    email: normalizedEmail,
+    role,
+  };
 
-async function callSupabaseAuth(path, payload) {
-  const response = await fetch(`${supabaseUrl}/auth/v1/${path}`, {
-    method: "POST",
-    headers: {
-      apikey: supabaseAnonKey,
-      Authorization: `Bearer ${supabaseAnonKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const text = await response.text();
-  let body;
-  try {
-    body = text ? JSON.parse(text) : {};
-  } catch {
-    body = { message: text || "Unknown auth response" };
+  if (passwordHash) {
+    payload.password_hash = passwordHash;
   }
 
-  if (!response.ok) {
-    const error = new Error(body?.msg || body?.message || "Supabase Auth request failed");
-    error.status = response.status;
-    throw error;
-  }
-
-  return body;
-}
-
-async function syncUserRoleRow({ authUserId, email, role }) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
   const { error } = await supabaseAdmin.from("users").upsert(
-    {
-      auth_user_id: authUserId,
-      email: normalizedEmail,
-      role,
-    },
+    payload,
     { onConflict: "auth_user_id" },
   );
 
   return error;
 }
 
-async function resolveEffectiveRole({ authUserId, fallbackRole }) {
-  const { data } = await supabaseAdmin
-    .from("users")
-    .select("role")
-    .eq("auth_user_id", authUserId)
-    .maybeSingle();
-
-  return data?.role || fallbackRole || "viewer";
-}
-
 async function linkFacultyProfileToAuthUser(authUserId, email) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail) return;
 
   await supabaseAdmin
@@ -149,49 +97,34 @@ export async function login(req, res) {
   }
 
   const { email, password } = parsed.data;
+  const normalizedEmail = normalizeEmail(email);
 
-  let authResult;
-  try {
-    authResult = await callSupabaseAuth("token?grant_type=password", { email, password });
-  } catch (err) {
-    const friendly = mapSupabaseNetworkError(err);
-    if (friendly) {
-      return res.status(502).json({ message: friendly });
-    }
-    const authError = mapSupabaseAuthError(err);
-    if (authError) {
-      return res.status(authError.status).json({ message: authError.message });
-    }
-    return res.status(err.status || 401).json({ message: err.message || "Login failed" });
+  const { data: userRow, error: userReadError } = await supabaseAdmin
+    .from("users")
+    .select("auth_user_id,email,role,password_hash")
+    .ilike("email", normalizedEmail)
+    .maybeSingle();
+
+  if (userReadError) {
+    return res.status(500).json({ message: userReadError.message });
   }
 
-  const metadataRole = authResult.user?.user_metadata?.role || "";
-  const existingRole = await resolveEffectiveRole({
-    authUserId: authResult.user.id,
-    fallbackRole: "",
-  });
-  const effectiveRole = metadataRole || existingRole || "viewer";
-
-  const syncError = await syncUserRoleRow({
-    authUserId: authResult.user.id,
-    email: authResult.user.email,
-    role: effectiveRole,
-  });
-  const role = await resolveEffectiveRole({
-    authUserId: authResult.user.id,
-    fallbackRole: effectiveRole,
-  });
-
-  await linkFacultyProfileToAuthUser(authResult.user.id, authResult.user.email);
-
-
-  if (syncError) {
-    return res.status(500).json({ message: `Login succeeded but user role sync failed: ${syncError.message}` });
+  if (!userRow?.password_hash) {
+    return res.status(401).json({ message: "Invalid email or password" });
   }
+
+  const passwordOk = await bcrypt.compare(password, userRow.password_hash);
+  if (!passwordOk) {
+    return res.status(401).json({ message: "Invalid email or password" });
+  }
+
+  const role = userRow.role || "viewer";
+  await linkFacultyProfileToAuthUser(userRow.auth_user_id, userRow.email);
+
   const backendToken = jwt.sign(
     {
-      sub: authResult.user.id,
-      email: authResult.user.email,
+      sub: userRow.auth_user_id,
+      email: userRow.email,
       role,
     },
     jwtSecret,
@@ -200,11 +133,11 @@ export async function login(req, res) {
 
   return res.json({
     access_token: backendToken,
-    refresh_token: authResult.refresh_token,
+    refresh_token: null,
     role,
     user: {
-      id: authResult.user.id,
-      email: authResult.user.email,
+      id: userRow.auth_user_id,
+      email: userRow.email,
     },
   });
 }
@@ -225,37 +158,30 @@ export async function register(req, res) {
     }
   }
 
-  let signupResult;
-  try {
-    signupResult = await callSupabaseAuth("signup", {
-      email,
-      password,
-      data: {
-        name,
-        role,
-      },
-    });
-  } catch (err) {
-    const friendly = mapSupabaseNetworkError(err);
-    if (friendly) {
-      return res.status(502).json({ message: friendly });
-    }
-    const authError = mapSupabaseAuthError(err);
-    if (authError) {
-      return res.status(authError.status).json({ message: authError.message });
-    }
-    return res.status(err.status || 400).json({ message: err.message || "Account creation failed" });
+  const normalizedEmail = normalizeEmail(email);
+
+  const { data: existingUser, error: existingError } = await supabaseAdmin
+    .from("users")
+    .select("auth_user_id")
+    .ilike("email", normalizedEmail)
+    .maybeSingle();
+
+  if (existingError) {
+    return res.status(500).json({ message: existingError.message });
   }
 
-  const authUserId = signupResult.id || signupResult.user?.id;
-  if (!authUserId) {
-    return res.status(400).json({ message: "Account creation failed" });
+  if (existingUser) {
+    return res.status(409).json({ message: "Account already exists for this email" });
   }
+
+  const authUserId = randomUUID();
+  const passwordHash = await bcrypt.hash(password, 10);
 
   const roleSyncError = await syncUserRoleRow({
     authUserId,
-    email,
+    email: normalizedEmail,
     role,
+    passwordHash,
   });
 
   if (roleSyncError) {
@@ -268,7 +194,7 @@ export async function register(req, res) {
       name,
       designation,
       department,
-      email,
+      email: normalizedEmail,
       phone,
       bio: "New faculty profile. Update details from dashboard.",
       research_area: "",
@@ -288,12 +214,12 @@ export async function register(req, res) {
     );
   }
 
-  await linkFacultyProfileToAuthUser(authUserId, email);
+  await linkFacultyProfileToAuthUser(authUserId, normalizedEmail);
 
   const backendToken = jwt.sign(
     {
       sub: authUserId,
-      email,
+      email: normalizedEmail,
       role,
     },
     jwtSecret,
@@ -303,11 +229,11 @@ export async function register(req, res) {
   return res.status(201).json({
     message: "Account created successfully",
     access_token: backendToken,
-    refresh_token: signupResult.refresh_token ?? null,
+    refresh_token: null,
     role,
     user: {
       id: authUserId,
-      email,
+      email: normalizedEmail,
     },
   });
 }
