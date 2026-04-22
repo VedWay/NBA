@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { emitToUser } from "../realtime/wsHub.js";
+import { getAuth } from "../utils/firebase.js";
 
 const jwtSecret = process.env.JWT_SECRET || "dev-nba-jwt-secret";
 const adminSignupCode = process.env.ADMIN_SIGNUP_CODE || "";
@@ -21,6 +22,13 @@ const registerSchema = z.object({
   designation: z.string().optional().default("Assistant Professor"),
   department: z.string().optional().default("Computer Engineering and IT"),
   phone: z.string().optional().default("+91 0000000000"),
+});
+
+const googleLoginSchema = z.object({
+  idToken: z.string(),
+  email: z.string().email(),
+  displayName: z.string(),
+  photoURL: z.string().optional(),
 });
 
 function normalizeEmail(email) {
@@ -236,4 +244,110 @@ export async function register(req, res) {
       email: normalizedEmail,
     },
   });
+}
+
+export async function googleLogin(req, res) {
+  const parsed = googleLoginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ message: "Invalid Google login payload" });
+  }
+
+  const { idToken, email, displayName, photoURL } = parsed.data;
+  const normalizedEmail = normalizeEmail(email);
+
+  try {
+    // Verify Firebase ID token
+    const auth = getAuth();
+    const decodedToken = await auth.verifyIdToken(idToken);
+    
+    // Check if the email matches the token
+    if (decodedToken.email !== normalizedEmail) {
+      return res.status(401).json({ message: "Email mismatch in Google authentication" });
+    }
+
+    // Check if user exists in our database
+    const { data: existingUser, error: existingError } = await supabaseAdmin
+      .from("users")
+      .select("auth_user_id,email,role")
+      .ilike("email", normalizedEmail)
+      .maybeSingle();
+
+    if (existingError) {
+      return res.status(500).json({ message: existingError.message });
+    }
+
+    let authUserId;
+    let role = "viewer"; // Default role for Google sign-in users
+
+    if (existingUser) {
+      // User exists, use their existing role
+      authUserId = existingUser.auth_user_id;
+      role = existingUser.role || "viewer";
+    } else {
+      // New user, create account
+      authUserId = randomUUID();
+      
+      const roleSyncError = await syncUserRoleRow({
+        authUserId,
+        email: normalizedEmail,
+        role,
+      });
+
+      if (roleSyncError) {
+        return res.status(500).json({ message: `Failed to sync user role: ${roleSyncError.message}` });
+      }
+
+      // Create faculty profile for new Google users
+      const { error: facultyError } = await supabaseAdmin.from("faculty").insert({
+        user_id: authUserId,
+        name: displayName,
+        designation: "Faculty",
+        department: "Computer Engineering and IT",
+        email: normalizedEmail,
+        phone: "",
+        bio: "Faculty profile created via Google Sign-In.",
+        research_area: "",
+        experience_teaching: 0,
+        experience_industry: 0,
+        is_approved: false,
+        created_by: authUserId,
+      });
+
+      if (facultyError) {
+        return res.status(500).json({ message: facultyError.message });
+      }
+
+      await notifyAdmins(
+        "New Faculty Registration via Google",
+        `${displayName} registered via Google Sign-In and profile approval is pending.`,
+      );
+    }
+
+    await linkFacultyProfileToAuthUser(authUserId, normalizedEmail);
+
+    const backendToken = jwt.sign(
+      {
+        sub: authUserId,
+        email: normalizedEmail,
+        role,
+      },
+      jwtSecret,
+      { expiresIn: "7d" },
+    );
+
+    return res.json({
+      access_token: backendToken,
+      refresh_token: null,
+      role,
+      user: {
+        id: authUserId,
+        email: normalizedEmail,
+        displayName,
+        photoURL,
+      },
+    });
+  } catch (error) {
+    console.error("Google login error:", error);
+    return res.status(401).json({ message: "Invalid Google authentication token" });
+  }
 }

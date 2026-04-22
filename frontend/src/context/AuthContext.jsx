@@ -26,6 +26,25 @@ export function AuthProvider({ children }) {
     return response;
   };
 
+  const loginWithGoogle = async (googleData) => {
+    try {
+      const payload = await authApi.googleLogin({
+        idToken: googleData.idToken,
+        email: googleData.user.email,
+        displayName: googleData.user.displayName,
+        photoURL: googleData.user.photoURL,
+      });
+      
+      if (payload?.access_token) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        setAuth(payload);
+      }
+      return payload;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem(STORAGE_KEY);
     setAuth(null);
@@ -40,6 +59,7 @@ export function AuthProvider({ children }) {
       isAuthenticated: Boolean(auth?.access_token),
       login,
       registerAccount,
+      loginWithGoogle,
       logout,
     }),
     [auth],

@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -22,8 +23,9 @@ const signupSchema = z.object({
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, registerAccount } = useAuth();
+  const { login, registerAccount, loginWithGoogle } = useAuth();
   const [mode, setMode] = useState("login");
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
@@ -62,6 +64,25 @@ export default function LoginPage() {
       else navigate("/dashboard");
     } catch (error) {
       signupForm.setError("root", { message: error.message || "Signup failed" });
+    }
+  };
+
+  const handleGoogleSignIn = async (googleData) => {
+    if (googleData.error) {
+      loginForm.setError("root", { message: googleData.error });
+      return;
+    }
+
+    setGoogleLoading(true);
+    try {
+      const payload = await loginWithGoogle(googleData);
+      if (payload.role === "admin") navigate("/admin");
+      else if (payload.role === "faculty") navigate("/dashboard");
+      else navigate("/faculty");
+    } catch (error) {
+      loginForm.setError("root", { message: error.message || "Google sign-in failed" });
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -134,6 +155,17 @@ export default function LoginPage() {
               >
                 {loginForm.formState.isSubmitting ? "Signing in..." : "Sign In"}
               </button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white px-2 text-slate-500">Or continue with</span>
+                </div>
+              </div>
+
+              <GoogleSignInButton onSignIn={handleGoogleSignIn} disabled={googleLoading} />
             </form>
           ) : (
             <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={signupForm.handleSubmit(onSignup)}>

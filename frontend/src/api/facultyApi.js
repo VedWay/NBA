@@ -18,6 +18,7 @@ export const entryApi = {
 export const authApi = {
   login: (body) => apiFetch("/auth/login", { method: "POST", body }),
   register: (body) => apiFetch("/auth/register", { method: "POST", body }),
+  googleLogin: (body) => apiFetch("/auth/google-login", { method: "POST", body }),
 };
 
 export const adminApi = {
