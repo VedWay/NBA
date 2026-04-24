@@ -8,6 +8,7 @@ export default function AdminPage() {
         <Link to="/admin" className="liquid-control rounded-xl px-4 py-2 text-sm font-semibold text-slate-700">Pending</Link>
         <Link to="/admin/history" className="liquid-control rounded-xl px-4 py-2 text-sm font-semibold text-slate-700">Past Approvals</Link>
         <Link to="/admin/faculty" className="liquid-control rounded-xl px-4 py-2 text-sm font-semibold text-slate-700">Faculty Directory</Link>
+        <Link to="/admin/students" className="liquid-control rounded-xl px-4 py-2 text-sm font-semibold text-slate-700">Student Section</Link>
         <Link to="/admin/query" className="liquid-control rounded-xl px-4 py-2 text-sm font-semibold text-slate-700">Query Search</Link>
       </div>
       <AdminPanel initialTab="pending" />

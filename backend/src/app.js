@@ -11,6 +11,7 @@ import fdpRoutes from "./routes/fdpRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import achievementRoutes from "./routes/achievementRoutes.js";
+import studentAchievementRoutes from "./routes/studentAchievementRoutes.js";
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use("/admin", adminRoutes);
 app.use("/reports", reportRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/achievements", achievementRoutes);
+app.use("/student", studentAchievementRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

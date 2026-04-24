@@ -36,7 +36,9 @@ export default function AppLayout() {
   const routeNavItems = [
     { label: "Home", to: "/" },
     { label: "Faculty", to: "/viewer" },
+    { label: "Students", to: "/students" },
     ...(isAuthenticated && role === "faculty" ? [{ label: "Dashboard", to: "/dashboard" }] : []),
+    ...(isAuthenticated && (role === "faculty" || role === "admin") ? [{ label: "Student Desk", to: "/student-desk" }] : []),
     ...(isAuthenticated && role === "admin" ? [{ label: "Requests", to: "/admin" }] : []),
   ];
 
