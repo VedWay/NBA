@@ -7,6 +7,42 @@ function rowLabel(row) {
   return row.title || row.name || row.course || row.degree || "Untitled entry";
 }
 
+async function resolveActorAuthUserId(user) {
+  if (!user) return null;
+
+  // Preferred identifier used across FKs in this schema.
+  if (user.id) {
+    const { data: byAuthId } = await supabaseAdmin
+      .from("users")
+      .select("auth_user_id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    if (byAuthId?.auth_user_id) return byAuthId.auth_user_id;
+  }
+
+  // Backward-compatibility for tokens that may carry users.id instead of auth_user_id.
+  if (user.id) {
+    const { data: byPrimaryId } = await supabaseAdmin
+      .from("users")
+      .select("auth_user_id")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (byPrimaryId?.auth_user_id) return byPrimaryId.auth_user_id;
+  }
+
+  if (user.email) {
+    const normalizedEmail = String(user.email).trim().toLowerCase();
+    const { data: byEmail } = await supabaseAdmin
+      .from("users")
+      .select("auth_user_id")
+      .ilike("email", normalizedEmail)
+      .maybeSingle();
+    if (byEmail?.auth_user_id) return byEmail.auth_user_id;
+  }
+
+  return null;
+}
+
 async function resolveRecipientUserId(table, record) {
   if (!record) {
     return null;
@@ -140,14 +176,19 @@ export async function approveEntry(req, res) {
     return res.status(400).json({ message: "Unsupported table" });
   }
 
+  const actorAuthUserId = await resolveActorAuthUserId(req.user);
+
   const { data: beforeRecord } = await supabaseAdmin.from(table).select("*").eq("id", id).maybeSingle();
+  if (!beforeRecord) {
+    return res.status(404).json({ message: "Entry not found" });
+  }
 
   const { data, error } = await supabaseAdmin
     .from(table)
     .update({
       is_approved: true,
-      approved_by: req.user.id,
-      approved_at: new Date().toISOString(),
+      approved_by: actorAuthUserId,
+      approved_at: new Date(),
     })
     .eq("id", id)
     .select("*")
@@ -175,9 +216,14 @@ export async function rejectEntry(req, res) {
     return res.status(400).json({ message: "Unsupported table" });
   }
 
-  const { data: beforeRecord } = await supabaseAdmin.from(table).select("*").eq("id", id).maybeSingle();
+  const actorAuthUserId = await resolveActorAuthUserId(req.user);
 
-  const restored = await restorePreviousApprovedSnapshot(table, id, req.user.id);
+  const { data: beforeRecord } = await supabaseAdmin.from(table).select("*").eq("id", id).maybeSingle();
+  if (!beforeRecord) {
+    return res.status(404).json({ message: "Entry not found" });
+  }
+
+  const restored = await restorePreviousApprovedSnapshot(table, id, actorAuthUserId);
   if (restored) {
     const recipientUserId = await resolveRecipientUserId(table, beforeRecord);
     await createNotification(
@@ -194,7 +240,7 @@ export async function rejectEntry(req, res) {
       is_approved: false,
       approved_by: null,
       approved_at: null,
-      updated_by: req.user.id,
+      updated_by: actorAuthUserId,
     })
     .eq("id", id)
     .select("*")

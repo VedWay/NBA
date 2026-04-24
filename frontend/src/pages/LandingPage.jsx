@@ -200,13 +200,10 @@ export default function LandingPage() {
   return (
     <div className="smooth-fade pb-14">
       <section className="relative min-h-[62vh] overflow-hidden md:min-h-[68vh]">
-        <video
-          src="/screen-recording.mov"
+        <img
+          src="/hero.png"
+          alt="NBA Faculty Information System"
           className="absolute inset-0 h-full w-full object-cover"
-          autoPlay
-          loop
-          muted
-          playsInline
         />
         <div className="vjti-hero-overlay absolute inset-0" />
         
