@@ -2,6 +2,14 @@ import { z } from "zod";
 import { supabaseAdmin } from "../db/supabase.js";
 import { emitToUser } from "../realtime/wsHub.js";
 
+const nullableDateString = z.preprocess(
+  (value) => {
+    if (value === "" || value === undefined || value === null) return null;
+    return value;
+  },
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected date in YYYY-MM-DD format").nullable(),
+);
+
 const tableSchemas = {
   publications: z.object({
     faculty_id: z.string().uuid(),
@@ -22,8 +30,8 @@ const tableSchemas = {
     title: z.string().min(2),
     role: z.string().optional().default("participant"),
     duration: z.string().optional().default(""),
-    start_date: z.string().optional().nullable(),
-    end_date: z.string().optional().nullable(),
+    start_date: nullableDateString,
+    end_date: nullableDateString,
     organized_by: z.string().optional().default(""),
   }),
   projects: z.object({
