@@ -53,7 +53,7 @@ function AchievementPreview({ item }) {
 }
 
 export default function AdminPanel({ initialTab = "pending" }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [bulkBusy, setBulkBusy] = useState(false);

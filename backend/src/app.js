@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import path from "path";
 import authRoutes from "./routes/authRoutes.js";
 import facultyRoutes from "./routes/facultyRoutes.js";
 import entryRoutes from "./routes/entryRoutes.js";
@@ -41,6 +42,7 @@ app.use("/reports", reportRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/achievements", achievementRoutes);
 app.use("/student", studentAchievementRoutes);
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use((err, _req, res, _next) => {
   console.error(err);

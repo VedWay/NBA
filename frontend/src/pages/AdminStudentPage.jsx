@@ -1,195 +1,324 @@
-import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { studentApi } from "../api/studentApi";
-import { useAuth } from "../context/AuthContext";
+import React, { useState, useEffect, useCallback } from 'react';
+import { studentApi } from '../api/studentApi';
+import { CheckCircle, Clock, XCircle, ShieldHalf, List, Check, X, Undo, FileText, Search, RefreshCw, AlertTriangle, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import './AdminStudentPage.css';
 
-const statusChoices = ["pending", "approved", "rejected"];
+const StatusBadge = ({ status }) => {
+  const config = {
+    approved: { cls: 'badge--approved', icon: CheckCircle, label: 'Approved' },
+    pending: { cls: 'badge--pending', icon: Clock, label: 'Pending' },
+    rejected: { cls: 'badge--rejected', icon: XCircle, label: 'Rejected' },
+  };
+  const key = status?.toLowerCase();
+  const c = config[key] || config.pending;
+  const Icon = c.icon;
+  return (
+    <span className={`status-badge ${c.cls}`}>
+      <Icon size={14} className="mr-1" /> {c.label}
+    </span>
+  );
+};
 
-export default function AdminStudentPage() {
-  const { token } = useAuth();
-  const queryClient = useQueryClient();
-  const [message, setMessage] = useState("");
+const AdminStudentPage = () => {
+  const { user } = useAuth();
+  const [achievements, setAchievements] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  
+  // Filtering States
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [filterDeptId, setFilterDeptId] = useState('All');
+  const [filterCategoryId, setFilterCategoryId] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState({});
+  const [toast, setToast] = useState(null);
+  const [error, setError] = useState(null);
 
-  const [studentForm, setStudentForm] = useState({
-    name: "",
-    roll_no: "",
-    department_id: "",
-    year_id: "",
-  });
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
-  const [statusDrafts, setStatusDrafts] = useState({});
+  const fetchAll = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const { data: refData } = useQuery({
-    queryKey: ["students", "reference"],
-    queryFn: () => studentApi.listReferenceData(),
-  });
+      const params = {
+        department_id: filterDeptId,
+        category_id: filterCategoryId
+      };
 
-  const { data: achievements = [], isLoading, error } = useQuery({
-    queryKey: ["students", "achievements", "admin"],
-    queryFn: () => studentApi.listAdminAchievements(token),
-    enabled: Boolean(token),
-  });
+      const results = await Promise.allSettled([
+        studentApi.getApproved(params),
+        studentApi.getPending(params),
+        studentApi.getRejected(params),
+        studentApi.getFilters(),
+      ]);
 
-  const createStudent = useMutation({
-    mutationFn: (body) => studentApi.createStudent(body, token),
-    onSuccess: () => {
-      setMessage("Student created successfully.");
-      setStudentForm({ name: "", roll_no: "", department_id: "", year_id: "" });
-      queryClient.invalidateQueries({ queryKey: ["students", "achievements", "admin"] });
-      queryClient.invalidateQueries({ queryKey: ["students", "reference"] });
-    },
-    onError: (err) => setMessage(err.message || "Failed to create student."),
-  });
+      const approved = results[0].status === 'fulfilled' ? results[0].value : [];
+      const pending = results[1].status === 'fulfilled' ? results[1].value : [];
+      const rejected = results[2].status === 'fulfilled' ? results[2].value : [];
+      const filterData = results[3].status === 'fulfilled' ? results[3].value : { departments: [], categories: [] };
 
-  const updateStatus = useMutation({
-    mutationFn: ({ id, status }) => studentApi.updateAchievementStatus(id, status, token),
-    onSuccess: () => {
-      setMessage("Achievement status updated.");
-      queryClient.invalidateQueries({ queryKey: ["students", "achievements", "admin"] });
-      queryClient.invalidateQueries({ queryKey: ["students", "achievements", "public"] });
-    },
-    onError: (err) => setMessage(err.message || "Failed to update status."),
-  });
+      setDepartments(filterData.departments || []);
+      setCategories(filterData.categories || []);
 
-  const grouped = useMemo(() => {
-    const pending = [];
-    const approved = [];
-    const rejected = [];
+      const all = [
+        ...(Array.isArray(approved) ? approved : []),
+        ...(Array.isArray(pending) ? pending : []),
+        ...(Array.isArray(rejected) ? rejected : []),
+      ];
 
-    for (const item of achievements) {
-      const normalized = String(item.status || "pending").toLowerCase();
-      if (normalized === "approved") approved.push(item);
-      else if (normalized === "rejected") rejected.push(item);
-      else pending.push(item);
+      const seen = new Set();
+      const deduped = all.filter(a => {
+        if (seen.has(a.achievement_id)) return false;
+        seen.add(a.achievement_id);
+        return true;
+      });
+
+      setAchievements(deduped);
+    } catch (err) {
+      setError('Could not connect to server...');
+    } finally {
+      setLoading(false);
     }
+  }, [filterDeptId, filterCategoryId]);
 
-    return { pending, approved, rejected };
-  }, [achievements]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const updateStatus = async (id, status) => {
+    setActionLoading(prev => ({ ...prev, [id]: status }));
+    try {
+      await studentApi.updateStatus(id, status, user?.id);
+      await fetchAll();
+      showToast(`Achievement ${status} successfully.`, status === 'approved' ? 'success' : 'error');
+    } catch (err) {
+      showToast(err.message || 'Action failed.', 'error');
+    } finally {
+      setActionLoading(prev => { const n = { ...prev }; delete n[id]; return n; });
+    }
+  };
+
+  const filtered = achievements.filter(a => {
+    const currentStatus = a.status?.trim().toLowerCase();
+    const targetFilter = filterStatus.toLowerCase();
+    const matchStatus = filterStatus === 'All' || currentStatus === targetFilter;
+
+    const matchSearch = !searchQuery ||
+      a.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.roll_no?.toString().includes(searchQuery) ||
+      a.title?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchStatus && matchSearch;
+  });
+
+  const counts = {
+    All: achievements.length,
+    Pending: achievements.filter(a => a.status?.toLowerCase() === 'pending').length,
+    Approved: achievements.filter(a => a.status?.toLowerCase() === 'approved').length,
+    Rejected: achievements.filter(a => a.status?.toLowerCase() === 'rejected').length,
+  };
+
+  const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 
   return (
-    <section className="mx-auto max-w-7xl space-y-6 px-4 py-8 md:px-8">
-      <header className="rounded-xl border border-slate-300 bg-white p-5">
-        <h1 className="text-3xl font-black text-slate-900">Admin Student Section</h1>
-        <p className="mt-1 text-sm text-slate-600">Create students and approve/reject student achievements.</p>
-      </header>
-
-      {message && <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-slate-700">{message}</p>}
-
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          createStudent.mutate({
-            name: studentForm.name,
-            roll_no: studentForm.roll_no,
-            department_id: studentForm.department_id ? Number(studentForm.department_id) : null,
-            year_id: studentForm.year_id ? Number(studentForm.year_id) : null,
-          });
-        }}
-        className="grid gap-3 rounded-xl border border-slate-300 bg-white p-5 md:grid-cols-2"
-      >
-        <h2 className="text-xl font-bold md:col-span-2">Create Student</h2>
-
-        <label className="text-sm font-semibold text-slate-700">
-          Name
-          <input
-            value={studentForm.name}
-            onChange={(event) => setStudentForm((current) => ({ ...current, name: event.target.value }))}
-            className="liquid-control mt-1 w-full rounded-lg px-3 py-2"
-            required
-          />
-        </label>
-
-        <label className="text-sm font-semibold text-slate-700">
-          Roll Number
-          <input
-            value={studentForm.roll_no}
-            onChange={(event) => setStudentForm((current) => ({ ...current, roll_no: event.target.value }))}
-            className="liquid-control mt-1 w-full rounded-lg px-3 py-2"
-            required
-          />
-        </label>
-
-        <label className="text-sm font-semibold text-slate-700">
-          Department
-          <select
-            value={studentForm.department_id}
-            onChange={(event) => setStudentForm((current) => ({ ...current, department_id: event.target.value }))}
-            className="liquid-control mt-1 w-full rounded-lg px-3 py-2"
-          >
-            <option value="">Select Department</option>
-            {(refData?.departments || []).map((department) => (
-              <option key={department.department_id} value={department.department_id}>{department.dept_name}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="text-sm font-semibold text-slate-700">
-          Year
-          <select
-            value={studentForm.year_id}
-            onChange={(event) => setStudentForm((current) => ({ ...current, year_id: event.target.value }))}
-            className="liquid-control mt-1 w-full rounded-lg px-3 py-2"
-          >
-            <option value="">Select Year</option>
-            {(refData?.years || []).map((year) => (
-              <option key={year.year_id} value={year.year_id}>{year.year_name}</option>
-            ))}
-          </select>
-        </label>
-
-        <button disabled={createStudent.isPending} className="liquid-button rounded-lg px-4 py-2 text-sm font-semibold text-white md:col-span-2">
-          {createStudent.isPending ? "Creating..." : "Create Student"}
-        </button>
-      </form>
-
-      {isLoading && <p className="rounded-lg bg-white px-4 py-3 text-sm text-slate-600">Loading achievements...</p>}
-      {error && <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error.message}</p>}
-
-      {!isLoading && !error && (
-        <div className="grid gap-5 xl:grid-cols-3">
-          {[
-            { key: "pending", title: "Pending", items: grouped.pending },
-            { key: "approved", title: "Approved", items: grouped.approved },
-            { key: "rejected", title: "Rejected", items: grouped.rejected },
-          ].map((group) => (
-            <section key={group.key} className="rounded-xl border border-slate-300 bg-white p-4">
-              <h2 className="mb-3 text-lg font-bold">{group.title} ({group.items.length})</h2>
-              <div className="space-y-3">
-                {!group.items.length && <p className="text-sm text-slate-500">No items.</p>}
-                {group.items.map((item) => {
-                  const currentDraft = statusDrafts[item.achievement_id] || item.status || "pending";
-                  return (
-                    <article key={item.achievement_id} className="rounded-lg border border-slate-200 p-3">
-                      <p className="text-sm font-bold text-slate-900">{item.title}</p>
-                      <p className="text-xs text-slate-600">{item.student_name || "-"} | {item.roll_no || "-"}</p>
-                      <p className="text-xs text-slate-600">Category: {item.category_name || "-"}</p>
-
-                      <div className="mt-2 flex gap-2">
-                        <select
-                          value={currentDraft}
-                          onChange={(event) => setStatusDrafts((current) => ({ ...current, [item.achievement_id]: event.target.value }))}
-                          className="liquid-control flex-1 rounded px-2 py-1 text-xs"
-                        >
-                          {statusChoices.map((choice) => (
-                            <option key={choice} value={choice}>{choice}</option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => updateStatus.mutate({ id: item.achievement_id, status: currentDraft })}
-                          disabled={updateStatus.isPending}
-                          className="rounded bg-slate-900 px-2 py-1 text-xs font-semibold text-white"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+    <div className="admin-page">
+      {toast && (
+        <div className={`toast toast--${toast.type}`}>
+          {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
+          {toast.msg}
         </div>
       )}
-    </section>
+
+      <div className="container">
+        <div className="admin-header">
+          <div>
+            <h1 className="admin-title">Student Achievements Admin</h1>
+            <p className="admin-sub">Review and manage student achievement submissions</p>
+          </div>
+          <div className="admin-header__badge">
+            <ShieldHalf size={16} /> Restricted Access
+          </div>
+        </div>
+
+        <div className="admin-stats">
+          {[
+            { label: 'Total', value: counts.All, icon: List, color: 'default' },
+            { label: 'Pending', value: counts.Pending, icon: Clock, color: 'pending' },
+            { label: 'Approved', value: counts.Approved, icon: Check, color: 'approved' },
+            { label: 'Rejected', value: counts.Rejected, icon: X, color: 'rejected' },
+          ].map(s => (
+            <div key={s.label} className={`admin-stat admin-stat--${s.color}`}>
+              <div className="admin-stat__icon"><s.icon size={18} /></div>
+              <div className="admin-stat__value">{s.value}</div>
+              <div className="admin-stat__label">{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="admin-toolbar">
+          <div className="toolbar-search">
+            <Search size={16} />
+            <input
+              type="text"
+              placeholder="Search by name, roll number, or title..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          
+          <select value={filterDeptId} onChange={e => setFilterDeptId(e.target.value)}>
+            <option value="All">All Departments</option>
+            {departments.map(d => (
+              <option key={d.department_id} value={d.department_id}>{d.dept_name}</option>
+            ))}
+          </select>
+
+          <select value={filterCategoryId} onChange={e => setFilterCategoryId(e.target.value)}>
+            <option value="All">All Categories</option>
+            {categories.map(c => (
+              <option key={c.category_id} value={c.category_id}>{c.category_name}</option>
+            ))}
+          </select>
+
+          <div className="toolbar-filters">
+            {['All', 'Pending', 'Approved', 'Rejected'].map(s => (
+              <button
+                key={s}
+                className={`toolbar-filter ${filterStatus === s ? 'toolbar-filter--active' : ''}`}
+                onClick={() => setFilterStatus(s)}
+              >
+                {s} <span className="toolbar-filter__count">{counts[s]}</span>
+              </button>
+            ))}
+          </div>
+          <button className="btn-refresh" onClick={fetchAll} title="Refresh">
+            <RefreshCw size={16} /> Refresh
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="admin-loading">
+            <Loader2 className="animate-spin" size={32} /> Loading submissions...
+          </div>
+        ) : error ? (
+          <div className="admin-error">
+            <AlertTriangle size={32} />
+            <p>{error}</p>
+            <button className="btn-refresh" onClick={fetchAll}>
+              <RefreshCw size={16} /> Retry
+            </button>
+          </div>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Student</th>
+                  <th>Achievement</th>
+                  <th>Category</th>
+                  <th>Level</th>
+                  <th>Position</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="table-empty">
+                      <List size={40} />
+                      <span>No submissions found</span>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((a, i) => (
+                    <tr key={a.achievement_id} className="table-row">
+                      <td className="id-cell">{a.achievement_id}</td>
+                      <td>
+                        <div className="student-cell">
+                          <div className="student-cell__avatar">{a.name?.charAt(0).toUpperCase() || '?'}</div>
+                          <div>
+                            <div className="student-cell__name">{a.name}</div>
+                            <div className="student-cell__meta">{a.roll_no}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="title-cell__title">{a.title}</div>
+                      </td>
+                      <td><span className="cat-tag">{a.category_name}</span></td>
+                      <td><span className={`level-tag level-tag--${a.level?.toLowerCase()}`}>{a.level}</span></td>
+                      <td><span className="position-cell">{a.position}</span></td>
+                      <td><StatusBadge status={a.status} /></td>
+                      <td>
+                        <div className="action-btns">
+                          {a.status?.toLowerCase() !== 'approved' && (
+                            <button
+                              className="action-btn action-btn--approve"
+                              onClick={() => updateStatus(a.achievement_id, 'approved')}
+                              disabled={!!actionLoading[a.achievement_id]}
+                              title="Approve"
+                            >
+                              {actionLoading[a.achievement_id] === 'approved'
+                                ? <Loader2 className="animate-spin" size={14} />
+                                : <Check size={14} />}
+                            </button>
+                          )}
+                          {a.status?.toLowerCase() !== 'rejected' && (
+                            <button
+                              className="action-btn action-btn--reject"
+                              onClick={() => updateStatus(a.achievement_id, 'rejected')}
+                              disabled={!!actionLoading[a.achievement_id]}
+                              title="Reject"
+                            >
+                              {actionLoading[a.achievement_id] === 'rejected'
+                                ? <Loader2 className="animate-spin" size={14} />
+                                : <X size={14} />}
+                            </button>
+                          )}
+                          {a.status?.toLowerCase() !== 'pending' && (
+                            <button
+                              className="action-btn action-btn--reset"
+                              onClick={() => updateStatus(a.achievement_id, 'pending')}
+                              disabled={!!actionLoading[a.achievement_id]}
+                              title="Reset to Pending"
+                            >
+                              <Undo size={14} />
+                            </button>
+                          )}
+                          {a.file_path && (
+                            <a
+                              href={`${backendUrl}/${a.file_path.replace(/\\/g, '/')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="action-btn"
+                              title="View File"
+                            >
+                              <FileText size={14} />
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="table-footer">
+          Showing <strong>{filtered.length}</strong> of <strong>{achievements.length}</strong> submissions
+        </div>
+      </div>
+    </div>
   );
-}
+};
+
+export default AdminStudentPage;

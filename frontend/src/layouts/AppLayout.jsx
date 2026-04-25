@@ -38,7 +38,7 @@ export default function AppLayout() {
     { label: "Faculty", to: "/viewer" },
     { label: "Students", to: "/students" },
     ...(isAuthenticated && role === "faculty" ? [{ label: "Dashboard", to: "/dashboard" }] : []),
-    ...(isAuthenticated && (role === "faculty" || role === "admin") ? [{ label: "Student Desk", to: "/student-desk" }] : []),
+    ...(isAuthenticated && (role === "faculty" || role === "admin") ? [{ label: "Submit Achievement", to: "/student-desk" }] : []),
     ...(isAuthenticated && role === "admin" ? [{ label: "Requests", to: "/admin" }] : []),
   ];
 

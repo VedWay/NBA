@@ -1,25 +1,27 @@
 import { Router } from "express";
-import { authRequired } from "../middleware/auth.js";
-import { requireRole } from "../middleware/requireRole.js";
-import {
-  createAchievement,
-  createStudent,
-  listAchievementsAdmin,
-  listPublicAchievements,
-  listReferenceData,
-  updateAchievementStatus,
-  uploadAchievementFile,
+import { 
+  addAchievement, 
+  getAchievements, 
+  getPending, 
+  getRejected, 
+  updateStatus, 
+  getFilters 
 } from "../controllers/studentAchievementController.js";
+import { upload } from "../middleware/upload.js";
 
 const router = Router();
 
-router.get("/achievements/public", listPublicAchievements);
-router.get("/reference", listReferenceData);
+// Public routes
+router.get("/", getAchievements);
+router.get("/filters", getFilters);
 
-router.get("/achievements/admin", authRequired, requireRole(["admin"]), listAchievementsAdmin);
-router.post("/students", authRequired, requireRole(["admin"]), createStudent);
-router.post("/achievements", authRequired, requireRole(["faculty", "admin"]), createAchievement);
-router.put("/achievements/:id/status", authRequired, requireRole(["admin"]), updateAchievementStatus);
-router.post("/files", authRequired, requireRole(["faculty", "admin"]), uploadAchievementFile);
+// Submission route
+router.post("/add", upload.single("proof"), addAchievement);
+
+// Admin routes (Note: auth middleware can be added here if needed, 
+// matching the source project's behavior for now which was unprotected)
+router.get("/pending", getPending);
+router.get("/rejected", getRejected);
+router.put("/update/:id", updateStatus);
 
 export default router;

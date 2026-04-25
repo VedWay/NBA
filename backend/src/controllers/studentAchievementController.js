@@ -1,210 +1,255 @@
 import { z } from "zod";
 import { studentExecute, studentQuery } from "../db/studentDb.js";
+import { notifyAdmins } from "../utils/notifications.js";
 
-const studentSchema = z.object({
-  name: z.string().min(2),
-  roll_no: z.string().min(1),
-  department_id: z.coerce.number().int().positive().nullable().optional(),
-  year_id: z.coerce.number().int().positive().nullable().optional(),
-});
 
 const achievementSchema = z.object({
-  student_id: z.coerce.number().int().positive(),
-  category_id: z.coerce.number().int().positive().nullable().optional(),
+  name: z.string().min(2),
+  roll_no: z.string().min(2),
+  department_id: z.coerce.number().int(),
+  year_id: z.coerce.number().int(),
+  category_id: z.coerce.number().int(),
   title: z.string().min(2),
-  level: z.string().optional().default(""),
-  position: z.string().optional().default(""),
+  level: z.string(),
+  position: z.string(),
 });
 
-const achievementStatusSchema = z.object({
-  status: z.enum(["pending", "approved", "rejected"]),
-});
-
-const fileSchema = z.object({
-  achievement_id: z.coerce.number().int().positive(),
-  file_path: z.string().min(1),
-  file_type: z.string().optional().default("other"),
-});
-
-function normalizeNullableText(value) {
-  if (value === undefined || value === null || value === "") return null;
-  return String(value);
-}
-
-async function ensureAdminIdByEmail(email, name = "System Admin") {
-  if (!email) return null;
-
-  const normalizedEmail = String(email).trim().toLowerCase();
-  const existing = await studentQuery("SELECT admin_id FROM admins WHERE email = ? LIMIT 1", [normalizedEmail]);
-  if (existing.length) return existing[0].admin_id;
-
-  const insertResult = await studentExecute("INSERT INTO admins (name, email) VALUES (?, ?)", [name, normalizedEmail]);
-  return insertResult.insertId || null;
-}
-
-export async function listPublicAchievements(_req, res) {
-  try {
-    const rows = await studentQuery(
-      `
-      SELECT
-        a.achievement_id,
-        a.title,
-        a.level,
-        a.position,
-        a.status,
-        s.student_id,
-        s.name AS student_name,
-        s.roll_no,
-        d.dept_name,
-        y.year_name,
-        c.category_name
-      FROM achievements a
-      JOIN students s ON s.student_id = a.student_id
-      LEFT JOIN departments d ON d.department_id = s.department_id
-      LEFT JOIN years y ON y.year_id = s.year_id
-      LEFT JOIN categories c ON c.category_id = a.category_id
-      WHERE a.status = 'approved'
-      ORDER BY a.achievement_id DESC
-      `,
-    );
-
-    return res.json(rows);
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-}
-
-export async function listAchievementsAdmin(_req, res) {
-  try {
-    const rows = await studentQuery(
-      `
-      SELECT
-        a.achievement_id,
-        a.student_id,
-        a.category_id,
-        a.title,
-        a.level,
-        a.position,
-        a.status,
-        a.approved_by,
-        s.name AS student_name,
-        s.roll_no,
-        d.dept_name,
-        y.year_name,
-        c.category_name
-      FROM achievements a
-      JOIN students s ON s.student_id = a.student_id
-      LEFT JOIN departments d ON d.department_id = s.department_id
-      LEFT JOIN years y ON y.year_id = s.year_id
-      LEFT JOIN categories c ON c.category_id = a.category_id
-      ORDER BY a.achievement_id DESC
-      `,
-    );
-
-    return res.json(rows);
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-}
-
-export async function createStudent(req, res) {
-  const parsed = studentSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid payload", errors: parsed.error.flatten() });
-  }
-
-  try {
-    const payload = parsed.data;
-    const insertResult = await studentExecute(
-      "INSERT INTO students (name, roll_no, department_id, year_id) VALUES (?, ?, ?, ?)",
-      [payload.name, payload.roll_no, payload.department_id ?? null, payload.year_id ?? null],
-    );
-
-    const rows = await studentQuery("SELECT * FROM students WHERE student_id = ? LIMIT 1", [insertResult.insertId]);
-    return res.status(201).json(rows[0]);
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-}
-
-export async function createAchievement(req, res) {
+// ================= ADD ACHIEVEMENT =================
+export async function addAchievement(req, res) {
   const parsed = achievementSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid payload", errors: parsed.error.flatten() });
+    return res.status(400).json({ 
+      message: "Invalid payload ❌", 
+      errors: parsed.error.flatten().fieldErrors 
+    });
   }
 
+  const {
+    name,
+    roll_no,
+    department_id,
+    year_id,
+    category_id,
+    title,
+    level,
+    position
+  } = parsed.data;
+
+  const filePath = req.file ? req.file.path : null;
+
   try {
-    const payload = parsed.data;
-    const insertResult = await studentExecute(
-      "INSERT INTO achievements (student_id, category_id, title, level, position, status, approved_by) VALUES (?, ?, ?, ?, ?, 'pending', NULL)",
-      [
-        payload.student_id,
-        payload.category_id ?? null,
-        payload.title,
-        normalizeNullableText(payload.level),
-        normalizeNullableText(payload.position),
-      ],
+    // Insert or update student
+    const studentQueryStr = `
+      INSERT INTO students (name, roll_no, department_id, year_id)
+      VALUES (?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE student_id=LAST_INSERT_ID(student_id), name=?, department_id=?, year_id=?
+    `;
+
+    const studentResult = await studentExecute(studentQueryStr, [
+      name, roll_no, department_id, year_id,
+      name, department_id, year_id
+    ]);
+
+    const student_id = studentResult.insertId;
+
+    // Insert achievement
+    const achievementQuery = `
+      INSERT INTO achievements 
+      (student_id, category_id, title, level, position, status)
+      VALUES (?, ?, ?, ?, ?, 'pending')
+    `;
+
+    const achievementResult = await studentExecute(
+      achievementQuery,
+      [student_id, category_id, title, level, position]
     );
 
-    const rows = await studentQuery("SELECT * FROM achievements WHERE achievement_id = ? LIMIT 1", [insertResult.insertId]);
-    return res.status(201).json(rows[0]);
+    const achievement_id = achievementResult.insertId;
+ 
+    // Notify Admins about new student submission
+    await notifyAdmins(
+      "New Student Achievement",
+      "New Student Achievement submitted and is waiting for approval."
+    );
+
+    if (filePath) {
+      const fileQuery = `
+        INSERT INTO files (achievement_id, file_path, file_type)
+        VALUES (?, ?, ?)
+      `;
+      await studentExecute(fileQuery, [achievement_id, filePath, req.file.mimetype]);
+      return res.json({ message: "Inserted with file ✅", achievement_id });
+    } else {
+      return res.json({ message: "Inserted without file ✅", achievement_id });
+    }
   } catch (error) {
+    console.error("Add achievement error:", error);
     return res.status(500).json({ message: error.message });
   }
 }
 
-export async function updateAchievementStatus(req, res) {
-  const achievementId = Number(req.params.id);
-  if (!Number.isInteger(achievementId) || achievementId <= 0) {
-    return res.status(400).json({ message: "Invalid achievement id" });
+// ================= GET APPROVED =================
+export async function getAchievements(req, res) {
+  const { department_id, category_id } = req.query;
+  let sql = `
+    SELECT 
+      s.name, 
+      s.roll_no,
+      d.dept_name,
+      y.year_name,
+      a.achievement_id,
+      a.title,
+      c.category_name,
+      a.level,
+      a.position,
+      a.status,
+      f.file_path
+    FROM achievements a
+    JOIN students s ON a.student_id = s.student_id
+    JOIN departments d ON s.department_id = d.department_id
+    JOIN years y ON s.year_id = y.year_id
+    LEFT JOIN categories c ON a.category_id = c.category_id
+    LEFT JOIN files f ON a.achievement_id = f.achievement_id
+    WHERE a.status='approved'
+  `;
+
+  const params = [];
+  if (department_id && department_id !== 'All') {
+    sql += " AND s.department_id = ?";
+    params.push(department_id);
+  }
+  if (category_id && category_id !== 'All') {
+    sql += " AND a.category_id = ?";
+    params.push(category_id);
   }
 
-  const parsed = achievementStatusSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid payload", errors: parsed.error.flatten() });
-  }
+  sql += " ORDER BY a.achievement_id DESC";
 
   try {
-    const { status } = parsed.data;
-    const adminId = await ensureAdminIdByEmail(req.user?.email, "System Admin");
+    const result = await studentQuery(sql, params);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
 
-    const result = await studentExecute(
-      "UPDATE achievements SET status = ?, approved_by = ? WHERE achievement_id = ?",
-      [status, status === "approved" ? adminId : null, achievementId],
-    );
+// ================= GET PENDING =================
+export async function getPending(req, res) {
+  const { department_id, category_id } = req.query;
+  let sql = `
+    SELECT 
+      s.name, 
+      s.roll_no,
+      d.dept_name,
+      y.year_name,
+      a.achievement_id,
+      a.title,
+      c.category_name,
+      a.level,
+      a.position,
+      a.status,
+      f.file_path
+    FROM achievements a
+    JOIN students s ON a.student_id = s.student_id
+    JOIN departments d ON s.department_id = d.department_id
+    JOIN years y ON s.year_id = y.year_id
+    LEFT JOIN categories c ON a.category_id = c.category_id
+    LEFT JOIN files f ON a.achievement_id = f.achievement_id
+    WHERE a.status = 'pending'
+  `;
 
-    if (!result.affectedRows) {
-      return res.status(404).json({ message: "Achievement not found" });
+  const params = [];
+  if (department_id && department_id !== 'All') {
+    sql += " AND s.department_id = ?";
+    params.push(department_id);
+  }
+  if (category_id && category_id !== 'All') {
+    sql += " AND a.category_id = ?";
+    params.push(category_id);
+  }
+
+  sql += " ORDER BY a.achievement_id DESC";
+
+  try {
+    const result = await studentQuery(sql, params);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// ================= GET REJECTED =================
+export async function getRejected(req, res) {
+  const { department_id, category_id } = req.query;
+  let sql = `
+    SELECT 
+      s.name, 
+      s.roll_no,
+      d.dept_name,
+      y.year_name,
+      a.achievement_id,
+      a.title,
+      c.category_name,
+      a.level,
+      a.position,
+      a.status,
+      f.file_path
+    FROM achievements a
+    JOIN students s ON a.student_id = s.student_id
+    LEFT JOIN departments d ON s.department_id = d.department_id
+    LEFT JOIN years y ON s.year_id = y.year_id
+    LEFT JOIN categories c ON a.category_id = c.category_id
+    LEFT JOIN files f ON a.achievement_id = f.achievement_id
+    WHERE a.status = 'rejected'
+  `;
+
+  const params = [];
+  if (department_id && department_id !== 'All') {
+    sql += " AND s.department_id = ?";
+    params.push(department_id);
+  }
+  if (category_id && category_id !== 'All') {
+    sql += " AND a.category_id = ?";
+    params.push(category_id);
+  }
+
+  sql += " ORDER BY a.achievement_id DESC";
+
+  try {
+    const result = await studentQuery(sql, params);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// ================= UPDATE STATUS =================
+export async function updateStatus(req, res) {
+  const id = req.params.id;
+  const { status, admin_id } = req.body;
+  
+  // Ensure we have a valid admin_id to avoid FK constraint errors
+  // We'll default to 1 (the one we seeded) if none provided or if it fails
+  let approvedBy = admin_id || 1;
+
+  try {
+    // Optional: Verify if admin exists, if not, use default 1
+    const adminCheck = await studentQuery("SELECT admin_id FROM admins WHERE admin_id = ?", [approvedBy]);
+    if (adminCheck.length === 0) {
+      approvedBy = 1; 
     }
 
-    const rows = await studentQuery("SELECT * FROM achievements WHERE achievement_id = ? LIMIT 1", [achievementId]);
-    return res.json(rows[0]);
+    const sql = "UPDATE achievements SET status=?, approved_by=? WHERE achievement_id=?";
+    await studentExecute(sql, [status, approvedBy, id]);
+    res.json({ message: "Status updated ✅", approvedBy });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    console.error("Update status error:", error);
+    res.status(500).json({ message: error.message });
   }
 }
 
-export async function uploadAchievementFile(req, res) {
-  const parsed = fileSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid payload", errors: parsed.error.flatten() });
-  }
-
-  try {
-    const payload = parsed.data;
-    const insertResult = await studentExecute(
-      "INSERT INTO files (achievement_id, file_path, file_type) VALUES (?, ?, ?)",
-      [payload.achievement_id, payload.file_path, payload.file_type],
-    );
-
-    const rows = await studentQuery("SELECT * FROM files WHERE file_id = ? LIMIT 1", [insertResult.insertId]);
-    return res.status(201).json(rows[0]);
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-}
-
-export async function listReferenceData(_req, res) {
+// ================= FILTER DATA =================
+export async function getFilters(req, res) {
   try {
     const [departments, years, categories] = await Promise.all([
       studentQuery("SELECT * FROM departments ORDER BY dept_name ASC"),
@@ -212,8 +257,15 @@ export async function listReferenceData(_req, res) {
       studentQuery("SELECT * FROM categories ORDER BY category_name ASC"),
     ]);
 
-    return res.json({ departments, years, categories });
+    res.json({
+      departments,
+      years,
+      categories
+    });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 }
+
+// Re-export as original names for compatibility if needed
+export { addAchievement as createAchievement };
