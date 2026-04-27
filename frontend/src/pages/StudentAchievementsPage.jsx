@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AchievementCard from '../components/AchievementCard';
 import { studentApi } from '../api/studentApi';
-import { Trophy, Medal, Award, Building2, Globe, Search, X, Upload, ArrowDown, GraduationCap, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
+import { Trophy, Medal, Award, Building2, Globe, Search, X, Upload, ArrowDown, GraduationCap, RefreshCw, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { generateStudentAchievementsPDF } from '../utils/pdfGenerator';
 import './StudentAchievementsPage.css';
 
 const CATEGORIES = ['All', 'Hackathon', 'Sports', 'Cultural', 'Academic', 'Research'];
@@ -53,6 +54,22 @@ const StudentAchievementsPage = () => {
       a.level?.toLowerCase() === activeLevel.toLowerCase();
     return matchCat && matchLvl && matchSearch;
   });
+
+  const handleGeneratePDF = () => {
+    try {
+      const pdf = generateStudentAchievementsPDF(filtered, {
+        category: activeCategory,
+        level: activeLevel,
+        search: searchQuery,
+      });
+
+      const fileName = `VJTI_Achievements_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
 
   return (
     <div className="home">
@@ -153,6 +170,15 @@ const StudentAchievementsPage = () => {
                   ))}
                 </div>
               </div>
+            </div>
+            <div className="filters__actions">
+              <button 
+                className="btn-export-pdf"
+                onClick={handleGeneratePDF}
+                title="Export achievements to PDF"
+              >
+                <FileText size={16} /> Print PDF
+              </button>
             </div>
           </div>
 

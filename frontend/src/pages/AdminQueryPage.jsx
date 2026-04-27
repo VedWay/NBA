@@ -112,9 +112,9 @@ export default function AdminQueryPage() {
             <option value="approved">Approved</option>
             <option value="pending">Pending</option>
           </select>
-          <div className="flex items-center gap-2">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:col-span-2 xl:col-span-2">
             <input type="date" value={filters.from} onChange={(e) => setFilters((s) => ({ ...s, from: e.target.value }))} className={inputClass} />
-            <span className="text-xs text-slate-400">to</span>
+            <span className="flex items-center justify-center text-xs text-slate-400">to</span>
             <input type="date" value={filters.to} onChange={(e) => setFilters((s) => ({ ...s, to: e.target.value }))} className={inputClass} />
           </div>
         </div>

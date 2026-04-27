@@ -190,6 +190,32 @@
   color: #4a4a6a;
 }
 
+.btn-export-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #9d2235;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(157, 34, 53, 0.2);
+}
+
+.btn-export-pdf:hover {
+  background: #7a1829;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(157, 34, 53, 0.35);
+}
+
+.btn-export-pdf:active {
+  transform: translateY(0);
+}
+
 /* Table */
 .admin-table-wrap {
   background: #ffffff;

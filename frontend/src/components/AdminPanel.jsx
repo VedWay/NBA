@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { achievementApi, adminApi } from "../api/facultyApi";
 import { useAuth } from "../context/AuthContext";
+import { generateAdminReportPDF } from "../utils/pdfGenerator";
 import adminBasePhoto from "../assets/admin-base-photo.svg";
 
 function labelForRow(row) {
@@ -384,6 +385,117 @@ export default function AdminPanel({ initialTab = "pending" }) {
       : selectedRequest.row.faculty_id || selectedRequest.faculty?.id
     : null;
 
+  const generatePDF = () => {
+    try {
+      let pdfData = {
+        title: "Pending Approvals Report",
+        filters: filters,
+        sections: [],
+      };
+
+      if (activeTab === "pending") {
+        pdfData.title = "Pending Approvals Report";
+        pdfData.sections = [
+          {
+            title: "Summary",
+            stats: {
+              "Total Pending Items": filteredPendingEntries.length,
+              "Faculty Groups": filteredPendingGroups.length,
+            },
+          },
+        ];
+
+        filteredPendingGroups.forEach((group) => {
+          const f = group.faculty;
+          pdfData.sections.push({
+            title: `${f?.name || "Unknown Faculty"}`,
+            stats: {
+              Designation: f?.designation || "—",
+              Department: f?.department || "—",
+              "Pending Items": group.entries.length,
+            },
+            items: group.entries.map(({ table, row }) => ({
+              title: `${table.toUpperCase()}: ${labelForRow(row)}`,
+              details: [`ID: ${row.id}`, `Created: ${row.created_at ? new Date(row.created_at).toLocaleDateString() : "N/A"}`],
+            })),
+          });
+        });
+      } else if (activeTab === "history") {
+        pdfData.title = "Approval History Report";
+        pdfData.sections = [
+          {
+            title: "Summary",
+            stats: {
+              "Total Approved Records": filteredHistory.length,
+            },
+          },
+        ];
+
+        const groupedByFaculty = {};
+        filteredHistory.forEach((item) => {
+          const facultyName = item.faculty?.name || "Unknown";
+          if (!groupedByFaculty[facultyName]) {
+            groupedByFaculty[facultyName] = [];
+          }
+          groupedByFaculty[facultyName].push(item);
+        });
+
+        Object.entries(groupedByFaculty).forEach(([facultyName, items]) => {
+          pdfData.sections.push({
+            title: facultyName,
+            stats: {
+              "Approved Records": items.length,
+            },
+            items: items.slice(0, 10).map((item) => ({
+              title: `${item.table.toUpperCase()}: ${item.label}`,
+              details: [`Approved: ${new Date(item.approved_at).toLocaleDateString()}`],
+            })),
+          });
+        });
+      } else if (activeTab === "faculty") {
+        pdfData.title = "Faculty Directory Report";
+        pdfData.sections = [
+          {
+            title: "Summary",
+            stats: {
+              "Total Faculty": sortedFaculty.length,
+              Approved: sortedFaculty.filter((f) => f.is_approved).length,
+              Pending: sortedFaculty.filter((f) => !f.is_approved).length,
+            },
+          },
+        ];
+
+        sortedFaculty.slice(0, 50).forEach((f) => {
+          pdfData.sections.push({
+            title: f.name,
+            stats: {
+              Designation: f.designation,
+              Department: f.department,
+              Status: f.is_approved ? "Approved" : "Pending",
+            },
+          });
+        });
+
+        if (sortedFaculty.length > 50) {
+          pdfData.sections.push({
+            title: "Note",
+            stats: {
+              "Additional Records": `${sortedFaculty.length - 50} more faculty members (see full list in admin panel)`,
+            },
+          });
+        }
+      }
+
+      const pdf = generateAdminReportPDF(pdfData);
+      const fileName = `NBA_Report_${activeTab}_${new Date().toISOString().split("T")[0]}.pdf`;
+      pdf.save(fileName);
+      setMessage(`PDF exported successfully as ${fileName}`);
+    } catch (err) {
+      setMessage(`Failed to generate PDF: ${err.message}`);
+      console.error("PDF generation error:", err);
+    }
+  };
+
   if (isLoading) return <p>Loading pending approvals...</p>;
   if (error) return <p className="text-rose-700">{error.message}</p>;
 
@@ -439,6 +551,14 @@ export default function AdminPanel({ initialTab = "pending" }) {
           </select>
           <input type="date" className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm focus:border-[#9d2235]/40 focus:outline-none" value={filters.from} onChange={(e) => setFilters((s) => ({ ...s, from: e.target.value }))} />
           <input type="date" className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm focus:border-[#9d2235]/40 focus:outline-none" value={filters.to} onChange={(e) => setFilters((s) => ({ ...s, to: e.target.value }))} />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={generatePDF}
+            className="rounded-lg bg-[#9d2235] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#7a1829] active:scale-95"
+          >
+            📄 Print PDF
+          </button>
         </div>
       </section>
 

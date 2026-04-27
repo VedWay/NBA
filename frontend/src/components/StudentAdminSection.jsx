@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { studentApi } from '../api/studentApi';
 import { CheckCircle, Clock, XCircle, ShieldHalf, List, Check, X, Undo, FileText, Search, RefreshCw, AlertTriangle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { generateStudentAchievementsPDF } from '../utils/pdfGenerator';
 import '../pages/AdminStudentPage.css'; // Reuse existing CSS
 
 const StatusBadge = ({ status }) => {
@@ -127,6 +128,27 @@ const StudentAdminSection = ({ initialFilter = 'all' }) => {
     return matchStatus && matchSearch;
   });
 
+  const selectedDepartment = departments.find((d) => String(d.department_id) === String(filterDeptId));
+  const selectedCategory = categories.find((c) => String(c.category_id) === String(filterCategoryId));
+
+  const handleExportPDF = () => {
+    try {
+      const pdf = generateStudentAchievementsPDF(filtered, {
+        department: filterDeptId === 'All' ? 'All' : (selectedDepartment?.dept_name || filterDeptId),
+        category: filterCategoryId === 'All' ? 'All' : (selectedCategory?.category_name || filterCategoryId),
+        status: filterStatus,
+        search: searchQuery,
+      });
+
+      const fileName = `VJTI_Student_Submissions_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+      showToast(`PDF exported successfully as ${fileName}`, 'success');
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      showToast('Failed to generate PDF. Please try again.', 'error');
+    }
+  };
+
   const counts = {
     All: achievements.length,
     Pending: achievements.filter(a => a.status?.toLowerCase() === 'pending').length,
@@ -200,6 +222,9 @@ const StudentAdminSection = ({ initialFilter = 'all' }) => {
         </div>
         <button className="btn-refresh" onClick={fetchAll}>
           <RefreshCw size={16} />
+        </button>
+        <button className="btn-export-pdf" onClick={handleExportPDF}>
+          <FileText size={16} /> Print PDF
         </button>
       </div>
 
