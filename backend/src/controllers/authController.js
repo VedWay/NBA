@@ -31,8 +31,18 @@ const googleLoginSchema = z.object({
   photoURL: z.string().optional(),
 });
 
+const USER_ROLES = new Set(["admin", "faculty", "viewer", "student"]);
+
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
+}
+
+function normalizeRole(role, fallback = "viewer") {
+  const normalizedRole = String(role || "").trim().toLowerCase();
+  if (USER_ROLES.has(normalizedRole)) {
+    return normalizedRole;
+  }
+  return fallback;
 }
 
 async function getFacultyApprovalStatusByIdentity({ authUserId, email }) {
@@ -60,7 +70,7 @@ async function syncUserRoleRow({ authUserId, email, role, passwordHash }) {
   const payload = {
     auth_user_id: authUserId,
     email: normalizedEmail,
-    role,
+    role: normalizeRole(role),
   };
 
   if (passwordHash) {
@@ -146,7 +156,7 @@ export async function login(req, res) {
     return res.status(401).json({ message: "Invalid email or password" });
   }
 
-  let role = userRow.role || "viewer";
+  let role = normalizeRole(userRow.role);
   await linkFacultyProfileToAuthUser(userRow.auth_user_id, userRow.email);
 
   const facultyProfile = await getFacultyApprovalStatusByIdentity({
@@ -199,8 +209,9 @@ export async function register(req, res) {
   }
 
   const { name, email, password, role, designation, department, phone } = parsed.data;
+  const normalizedRole = normalizeRole(role);
 
-  if (role === "admin" && adminSignupCode) {
+  if (normalizedRole === "admin" && adminSignupCode) {
     const suppliedCode = String(req.body.admin_signup_code ?? "").trim();
     const expectedCode = String(adminSignupCode).trim();
     if (suppliedCode !== expectedCode) {
@@ -230,7 +241,7 @@ export async function register(req, res) {
   const roleSyncError = await syncUserRoleRow({
     authUserId,
     email: normalizedEmail,
-    role,
+    role: normalizedRole,
     passwordHash,
   });
 
@@ -238,7 +249,7 @@ export async function register(req, res) {
     return res.status(500).json({ message: `Account created but role sync failed: ${roleSyncError.message}` });
   }
 
-  if (role === "faculty") {
+  if (normalizedRole === "faculty") {
     const { error: facultyError } = await supabaseAdmin.from("faculty").insert({
       user_id: authUserId,
       name,
@@ -266,10 +277,10 @@ export async function register(req, res) {
 
   await linkFacultyProfileToAuthUser(authUserId, normalizedEmail);
 
-  if (role === "faculty") {
+  if (normalizedRole === "faculty") {
     return res.status(201).json({
       message: "Faculty account created. Wait for admin approval before signing in.",
-      role,
+      role: normalizedRole,
       user: {
         id: authUserId,
         email: normalizedEmail,
@@ -281,7 +292,7 @@ export async function register(req, res) {
     {
       sub: authUserId,
       email: normalizedEmail,
-      role,
+      role: normalizedRole,
     },
     jwtSecret,
     { expiresIn: "7d" },
@@ -291,7 +302,7 @@ export async function register(req, res) {
     message: "Account created successfully",
     access_token: backendToken,
     refresh_token: null,
-    role,
+    role: normalizedRole,
     user: {
       id: authUserId,
       email: normalizedEmail,
@@ -330,7 +341,7 @@ export async function googleLogin(req, res) {
     const emailDomain = normalizedEmail.split("@")[1] || "";
     if (emailDomain !== "vjti.ac.in" && !emailDomain.endsWith(".vjti.ac.in")) {
       return res.status(403).json({
-        message: "Only VJTI organization accounts (@vjti.ac.in) are allowed to sign in.",
+        message: "Only VJTI organization accounts (@it.vjti.ac.in or @vjti.ac.in) are allowed to sign in.",
       });
     }
 
@@ -360,11 +371,22 @@ export async function googleLogin(req, res) {
     if (existingUser) {
       // User exists, use their existing role
       authUserId = existingUser.auth_user_id;
-      role = existingUser.role || "viewer";
+      role = normalizeRole(existingUser.role);
+
+      // Student tab should map viewer users to student role.
+      if (loginAsStudent && (role === "viewer" || role === "student")) {
+        role = "student";
+        if (existingUser.role !== "student") {
+          await supabaseAdmin
+            .from("users")
+            .update({ role: "student" })
+            .eq("auth_user_id", authUserId);
+        }
+      }
     } else {
       // New user — determine role
       authUserId = randomUUID();
-      role = loginAsStudent ? "student" : "viewer";
+      role = normalizeRole(loginAsStudent ? "student" : "viewer");
       
       const roleSyncError = await syncUserRoleRow({
         authUserId,

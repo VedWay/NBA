@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   auth_user_id CHAR(36) NOT NULL,
   email VARCHAR(255) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'faculty', 'viewer') NOT NULL DEFAULT 'viewer',
+  role ENUM('admin', 'faculty', 'viewer', 'student') NOT NULL DEFAULT 'viewer',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_users_auth_user_id (auth_user_id),
