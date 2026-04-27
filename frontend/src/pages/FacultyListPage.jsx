@@ -1,23 +1,97 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, useReducedMotion } from "framer-motion";
 import FacultyList from "../components/FacultyList";
 import { useFacultyList } from "../hooks/useFaculty";
 import { useAuth } from "../context/AuthContext";
-import { achievementApi } from "../api/facultyApi";
-import { Search, Filter, Users, Building2, X, Award, ExternalLink } from "lucide-react";
+import { facultyApi } from "../api/facultyApi";
+import { Search, Filter, Users, Building2, X, BookOpen, Star, Calendar } from "lucide-react";
+
+function normalizePublicationType(type) {
+  const raw = String(type || "journal").trim();
+  if (!raw) return "Journal Paper";
+  return raw
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (ch) => ch.toUpperCase()) + " Paper";
+}
+
+function sortByNewest(items = []) {
+  return [...items].sort((a, b) => {
+    const yearA = Number(a?.year) || 0;
+    const yearB = Number(b?.year) || 0;
+    if (yearA !== yearB) return yearB - yearA;
+    const timeA = new Date(a?.created_at || 0).getTime();
+    const timeB = new Date(b?.created_at || 0).getTime();
+    return timeB - timeA;
+  });
+}
 
 export default function FacultyListPage() {
   const { token } = useAuth();
   const { data, isLoading, error } = useFacultyList(token);
-  const { data: achievements = [], isLoading: isAchievementsLoading } = useQuery({
-    queryKey: ["achievements", "public", "faculty-page"],
-    queryFn: () => achievementApi.listPublic(),
+  const { data: facultyHighlights, isLoading: isHighlightsLoading } = useQuery({
+    queryKey: ["faculty-page", "research-highlights"],
+    queryFn: async () => {
+      const facultyRows = await facultyApi.list();
+      const visibleFaculty = Array.isArray(facultyRows) ? facultyRows.filter((item) => item?.id) : [];
+      const pickedFaculty = visibleFaculty.slice(0, 14);
+
+      const profileRows = await Promise.all(
+        pickedFaculty.map(async (item) => {
+          try {
+            const profile = await facultyApi.byId(item.id);
+            return { faculty: item, profile };
+          } catch {
+            return null;
+          }
+        }),
+      );
+
+      const publications = [];
+      const awards = [];
+
+      for (const row of profileRows) {
+        if (!row?.profile) continue;
+
+        const facultyName = row.faculty?.name || "Faculty";
+
+        for (const item of row.profile.publications || []) {
+          publications.push({
+            id: item.id || `${facultyName}-${item.title}`,
+            title: item.title || "Untitled publication",
+            authors: item.authors || "Authors not listed",
+            year: item.year,
+            type: normalizePublicationType(item.type),
+            created_at: item.created_at,
+          });
+        }
+
+        for (const item of row.profile.awards || []) {
+          awards.push({
+            id: item.id || `${facultyName}-${item.title}-${item.year}`,
+            title: item.honors || item.title || item.membership || "Recognition",
+            description: item.description || "Recognized for notable contribution.",
+            year: item.year,
+            facultyName,
+            created_at: item.created_at,
+          });
+        }
+      }
+
+      return {
+        publications: sortByNewest(publications).slice(0, 32),
+        awards: sortByNewest(awards).slice(0, 32),
+      };
+    },
   });
   const faculty = data || [];
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [selectedDesignation, setSelectedDesignation] = useState("all");
+  const [activePublication, setActivePublication] = useState(0);
+  const [activeAward, setActiveAward] = useState(0);
+  const publicationScrollRef = useRef(null);
+  const awardScrollRef = useRef(null);
   const prefersReducedMotion = useReducedMotion();
 
   const departments = useMemo(() => {
@@ -52,31 +126,43 @@ export default function FacultyListPage() {
     });
   }, [faculty, searchQuery, selectedDepartment, selectedDesignation]);
 
-  const facultyAchievements = useMemo(() => {
-    const selectedDept = selectedDepartment.trim().toLowerCase();
-
-    return (achievements || [])
-      .filter((item) => {
-        const hasFaculty = Boolean(item?.faculty?.name);
-        if (!hasFaculty) return false;
-        if (selectedDepartment === "all") return true;
-        return (item.faculty?.department || "").trim().toLowerCase() === selectedDept;
-      })
-      .slice(0, 6);
-  }, [achievements, selectedDepartment]);
-
   const hasActiveFilters = searchQuery || selectedDepartment !== "all" || selectedDesignation !== "all";
 
-  const rollingAchievements = useMemo(() => {
-    return (achievements || [])
-      .filter((item) => Boolean(item?.title) && Boolean(item?.faculty?.name))
-      .slice(0, 10);
-  }, [achievements]);
+  const publications = facultyHighlights?.publications || [];
+  const awards = facultyHighlights?.awards || [];
 
-  const rollingTrack = useMemo(() => {
-    if (!rollingAchievements.length) return [];
-    return [...rollingAchievements, ...rollingAchievements];
-  }, [rollingAchievements]);
+  useEffect(() => {
+    if (publications.length <= 1) return undefined;
+    const intervalId = window.setInterval(() => {
+      setActivePublication((current) => (current + 1) % publications.length);
+    }, 3500);
+    return () => window.clearInterval(intervalId);
+  }, [publications.length]);
+
+  useEffect(() => {
+    if (awards.length <= 1) return undefined;
+    const intervalId = window.setInterval(() => {
+      setActiveAward((current) => (current + 1) % awards.length);
+    }, 4000);
+    return () => window.clearInterval(intervalId);
+  }, [awards.length]);
+
+  useEffect(() => {
+    const refs = [publicationScrollRef.current, awardScrollRef.current].filter(Boolean);
+    if (!refs.length) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      refs.forEach((node) => {
+        if (!node) return;
+        const limit = node.scrollHeight - node.clientHeight;
+        if (limit <= 0) return;
+        const next = node.scrollTop + 1;
+        node.scrollTop = next >= limit ? 0 : next;
+      });
+    }, 45);
+
+    return () => window.clearInterval(intervalId);
+  }, [publications.length, awards.length]);
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -119,64 +205,119 @@ export default function FacultyListPage() {
           whileInView={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.25 }}
           transition={{ duration: 0.45, ease: "easeOut" }}
-          className="mb-8 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-r from-white via-rose-50/40 to-white shadow-sm"
+          className="mb-8"
         >
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 md:px-5">
-            <div>
-              <p className="campus-kicker">Rolling Highlights</p>
-              <h2 className="text-lg font-bold text-slate-800">Live Faculty Achievements</h2>
-            </div>
-            <span className="rounded-full bg-[#9d2235]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#9d2235]">
-              Auto Feed
-            </span>
+          <div className="mb-6">
+            <p className="campus-kicker">Research Highlights</p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-800 md:text-3xl">Publications & Recognition</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">
+              Latest faculty research publications and awards curated from approved institutional records.
+            </p>
           </div>
 
-          {!isAchievementsLoading && !rollingAchievements.length && (
-            <div className="px-5 py-6 text-sm text-slate-500">No achievements to roll yet.</div>
-          )}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 bg-gradient-to-r from-[#9d2235] to-[#b51a34] px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="h-5 w-5 text-white/80" />
+                  <h3 className="text-lg font-bold text-white">Latest Research Publications</h3>
+                </div>
+                <p className="mt-1 text-xs text-white/60">{publications.length} publications indexed</p>
+              </div>
 
-          {isAchievementsLoading && (
-            <div className="px-5 py-5">
-              <div className="h-16 animate-pulse rounded-xl bg-slate-100" />
-            </div>
-          )}
+              <div className="p-5">
+                {isHighlightsLoading && (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+                    ))}
+                  </div>
+                )}
 
-          {!isAchievementsLoading && !!rollingAchievements.length && (
-            <div className="overflow-hidden px-3 py-4 md:px-4">
-              <motion.div
-                className="flex w-max gap-3"
-                animate={
-                  prefersReducedMotion
-                    ? {}
-                    : {
-                        x: ["0%", "-50%"],
-                      }
-                }
-                transition={
-                  prefersReducedMotion
-                    ? {}
-                    : {
-                        duration: 28,
-                        ease: "linear",
-                        repeat: Infinity,
-                      }
-                }
-              >
-                {rollingTrack.map((item, index) => (
-                  <article
-                    key={`${item.id || item.title}-${index}`}
-                    className="min-w-[280px] max-w-[320px] rounded-xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm"
-                  >
-                    <p className="line-clamp-1 text-sm font-bold text-slate-800">{item.title}</p>
-                    <p className="mt-1 line-clamp-1 text-xs text-slate-500">{item.faculty?.name}</p>
-                    <div className="mt-2 inline-flex items-center rounded-full bg-[#9d2235]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9d2235]">
-                      {item.media_type || "achievement"}
-                    </div>
-                  </article>
-                ))}
-              </motion.div>
-            </div>
-          )}
+                {!isHighlightsLoading && !publications.length && (
+                  <p className="py-8 text-center text-sm text-slate-500">No publication highlights available yet.</p>
+                )}
+
+                {!isHighlightsLoading && !!publications.length && (
+                  <div ref={publicationScrollRef} className="max-h-[380px] space-y-3 overflow-y-auto pr-1">
+                    {publications.map((item, index) => (
+                      <article
+                        key={item.id}
+                        className={`rounded-xl border p-4 transition-all duration-300 ${
+                          index === activePublication
+                            ? "border-[#9d2235]/30 bg-[#9d2235]/5 shadow-sm"
+                            : "border-transparent bg-slate-50/50 hover:bg-slate-50"
+                        }`}
+                      >
+                        <p className="text-sm font-bold leading-snug text-slate-800">{item.title}</p>
+                        <p className="mt-1 text-xs text-slate-500">{item.authors}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-[#9d2235]/10 px-2 py-0.5 text-[10px] font-semibold text-[#9d2235]">
+                            {item.type}
+                          </span>
+                          {item.year && (
+                            <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                              <Calendar className="h-3 w-3" /> {item.year}
+                            </span>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </article>
+
+            <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <Star className="h-5 w-5 text-white/80" />
+                  <h3 className="text-lg font-bold text-white">Awards & Recognition</h3>
+                </div>
+                <p className="mt-1 text-xs text-white/60">{awards.length} awards documented</p>
+              </div>
+
+              <div className="p-5">
+                {isHighlightsLoading && (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+                    ))}
+                  </div>
+                )}
+
+                {!isHighlightsLoading && !awards.length && (
+                  <p className="py-8 text-center text-sm text-slate-500">No awards highlights available yet.</p>
+                )}
+
+                {!isHighlightsLoading && !!awards.length && (
+                  <div ref={awardScrollRef} className="max-h-[380px] space-y-3 overflow-y-auto pr-1">
+                    {awards.map((item, index) => (
+                      <article
+                        key={item.id}
+                        className={`rounded-xl border p-4 transition-all duration-300 ${
+                          index === activeAward
+                            ? "border-amber-300/50 bg-amber-50 shadow-sm"
+                            : "border-transparent bg-slate-50/50 hover:bg-slate-50"
+                        }`}
+                      >
+                        <p className="text-sm font-bold leading-snug text-slate-800">{item.title}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500">{item.description}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs font-semibold text-amber-700">{item.facultyName}</span>
+                          {item.year && (
+                            <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                              <Calendar className="h-3 w-3" /> {item.year}
+                            </span>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </article>
+          </div>
         </motion.section>
 
         {/* Search and Filters */}
@@ -272,71 +413,6 @@ export default function FacultyListPage() {
           </motion.div>
         )}
 
-        <section className="mt-12">
-          <div className="mb-5 flex items-end justify-between gap-3">
-            <div>
-              <p className="campus-kicker">Showcase</p>
-              <h2 className="mt-1 text-2xl font-bold text-slate-800">Latest Faculty Achievements</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                {selectedDepartment === "all"
-                  ? "Recent published faculty achievements"
-                  : `Recent published achievements from ${selectedDepartment}`}
-              </p>
-            </div>
-          </div>
-
-          {isAchievementsLoading && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="h-48 animate-pulse rounded-2xl border border-slate-200 bg-white" />
-              ))}
-            </div>
-          )}
-
-          {!isAchievementsLoading && !facultyAchievements.length && (
-            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
-              <Award className="mx-auto h-8 w-8 text-slate-300" />
-              <p className="mt-3 text-sm font-medium text-slate-500">
-                No faculty achievements found for the selected department.
-              </p>
-            </div>
-          )}
-
-          {!isAchievementsLoading && !!facultyAchievements.length && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {facultyAchievements.map((item, index) => (
-                <motion.article
-                  key={item.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                  initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
-                  whileInView={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.2 }}
-                  transition={{ duration: 0.35, delay: index * 0.06, ease: "easeOut" }}
-                >
-                  <div className="mb-3 inline-flex items-center rounded-full bg-[#9d2235]/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#9d2235]">
-                    {item.media_type || "achievement"}
-                  </div>
-                  <h3 className="line-clamp-2 text-base font-bold text-slate-800">{item.title}</h3>
-                  <p className="mt-2 line-clamp-3 text-sm text-slate-500">{item.summary || "No summary provided."}</p>
-                  <p className="mt-3 text-xs font-semibold text-slate-700">
-                    {item.faculty?.name}
-                    {item.faculty?.department ? ` • ${item.faculty.department}` : ""}
-                  </p>
-                  {item.media_url && (
-                    <a
-                      href={item.media_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#9d2235] hover:underline"
-                    >
-                      View Proof <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
-                </motion.article>
-              ))}
-            </div>
-          )}
-        </section>
       </div>
     </section>
   );

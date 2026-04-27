@@ -35,9 +35,9 @@ const sideSections = [
     to: "#awards",
     icon: Award,
     children: [
-      { key: "Honors", to: "#awards-honors" },
-      { key: "Membership", to: "#awards-membership" },
-      { key: "Contributions", to: "#awards-contributions" },
+      { key: "Honors", to: "#honors" },
+      { key: "Membership", to: "#memberships" },
+      { key: "Contributions", to: "#contributions" },
     ],
   },
   {

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { achievementApi, facultyApi } from "../api/facultyApi";
 import {
   BookOpen,
@@ -197,10 +197,6 @@ export default function LandingPage() {
   });
 
   const [filter, setFilter] = useState("all");
-  const [activePublication, setActivePublication] = useState(0);
-  const [activeAward, setActiveAward] = useState(0);
-  const publicationScrollRef = useRef(null);
-  const awardScrollRef = useRef(null);
 
   const filteredAchievements = useMemo(() => {
     if (filter === "all") return achievements;
@@ -213,39 +209,6 @@ export default function LandingPage() {
   const awards = facultyHighlights?.awards || [];
   const facultyCount = facultyHighlights?.facultyCount || 0;
   const departmentCount = facultyHighlights?.departmentCount || 0;
-
-  useEffect(() => {
-    if (publications.length <= 1) return undefined;
-    const intervalId = window.setInterval(() => {
-      setActivePublication((current) => (current + 1) % publications.length);
-    }, 3500);
-    return () => window.clearInterval(intervalId);
-  }, [publications.length]);
-
-  useEffect(() => {
-    if (awards.length <= 1) return undefined;
-    const intervalId = window.setInterval(() => {
-      setActiveAward((current) => (current + 1) % awards.length);
-    }, 4000);
-    return () => window.clearInterval(intervalId);
-  }, [awards.length]);
-
-  useEffect(() => {
-    const refs = [publicationScrollRef.current, awardScrollRef.current].filter(Boolean);
-    if (!refs.length) return undefined;
-
-    const intervalId = window.setInterval(() => {
-      refs.forEach((node) => {
-        if (!node) return;
-        const limit = node.scrollHeight - node.clientHeight;
-        if (limit <= 0) return;
-        const next = node.scrollTop + 1;
-        node.scrollTop = next >= limit ? 0 : next;
-      });
-    }, 45);
-
-    return () => window.clearInterval(intervalId);
-  }, [publications.length, awards.length]);
 
   return (
     <div className="smooth-fade">
@@ -339,125 +302,6 @@ export default function LandingPage() {
               description="Login to access NBA-formatted reports and research data exports."
               color="bg-amber-100 text-amber-700"
             />
-          </div>
-        </div>
-      </section>
-
-      {/* Publications & Awards Section */}
-      <section className="px-4 py-16 md:px-10">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-10 text-center">
-            <p className="campus-kicker">Research Highlights</p>
-            <h2 className="mt-3 font-display text-3xl font-bold text-slate-800 md:text-4xl">Publications & Recognition</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
-              Latest faculty research publications and awards curated from approved institutional records.
-            </p>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Publications Card */}
-            <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-100 bg-gradient-to-r from-[#9d2235] to-[#b51a34] px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <BookOpen className="h-5 w-5 text-white/80" />
-                  <h3 className="text-lg font-bold text-white">Latest Research Publications</h3>
-                </div>
-                <p className="mt-1 text-xs text-white/60">{publications.length} publications indexed</p>
-              </div>
-
-              <div className="p-5">
-                {isHighlightsLoading && (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
-                    ))}
-                  </div>
-                )}
-
-                {!isHighlightsLoading && !publications.length && (
-                  <p className="py-8 text-center text-sm text-slate-500">No publication highlights available yet.</p>
-                )}
-
-                {!isHighlightsLoading && !!publications.length && (
-                  <div ref={publicationScrollRef} className="max-h-[380px] space-y-3 overflow-y-auto pr-1">
-                    {publications.map((item, index) => (
-                      <article
-                        key={item.id}
-                        className={`rounded-xl border p-4 transition-all duration-300 ${
-                          index === activePublication
-                            ? "border-[#9d2235]/30 bg-[#9d2235]/5 shadow-sm"
-                            : "border-transparent bg-slate-50/50 hover:bg-slate-50"
-                        }`}
-                      >
-                        <p className="text-sm font-bold leading-snug text-slate-800">{item.title}</p>
-                        <p className="mt-1 text-xs text-slate-500">{item.authors}</p>
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-[#9d2235]/10 px-2 py-0.5 text-[10px] font-semibold text-[#9d2235]">
-                            {item.type}
-                          </span>
-                          {item.year && (
-                            <span className="flex items-center gap-1 text-[10px] text-slate-400">
-                              <Calendar className="h-3 w-3" /> {item.year}
-                            </span>
-                          )}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </article>
-
-            {/* Awards Card */}
-            <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-100 bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <Star className="h-5 w-5 text-white/80" />
-                  <h3 className="text-lg font-bold text-white">Awards & Recognition</h3>
-                </div>
-                <p className="mt-1 text-xs text-white/60">{awards.length} awards documented</p>
-              </div>
-
-              <div className="p-5">
-                {isHighlightsLoading && (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
-                    ))}
-                  </div>
-                )}
-
-                {!isHighlightsLoading && !awards.length && (
-                  <p className="py-8 text-center text-sm text-slate-500">No awards highlights available yet.</p>
-                )}
-
-                {!isHighlightsLoading && !!awards.length && (
-                  <div ref={awardScrollRef} className="max-h-[380px] space-y-3 overflow-y-auto pr-1">
-                    {awards.map((item, index) => (
-                      <article
-                        key={item.id}
-                        className={`rounded-xl border p-4 transition-all duration-300 ${
-                          index === activeAward
-                            ? "border-amber-300/50 bg-amber-50 shadow-sm"
-                            : "border-transparent bg-slate-50/50 hover:bg-slate-50"
-                        }`}
-                      >
-                        <p className="text-sm font-bold leading-snug text-slate-800">{item.title}</p>
-                        <p className="mt-1 text-xs leading-relaxed text-slate-500">{item.description}</p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-xs font-semibold text-amber-700">{item.facultyName}</span>
-                          {item.year && (
-                            <span className="flex items-center gap-1 text-[10px] text-slate-400">
-                              <Calendar className="h-3 w-3" /> {item.year}
-                            </span>
-                          )}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </article>
           </div>
         </div>
       </section>
