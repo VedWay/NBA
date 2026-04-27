@@ -35,6 +35,7 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [studentError, setStudentError] = useState("");
   const [studentGoogleLoading, setStudentGoogleLoading] = useState(false);
+  const [signupInfo, setSignupInfo] = useState("");
 
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
@@ -67,8 +68,23 @@ export default function LoginPage() {
 
   const onSignup = async (values) => {
     try {
-      await registerAccount({ ...values, role: "faculty" });
-      navigate("/dashboard");
+      const response = await registerAccount({ ...values, role: "faculty" });
+      if (response?.access_token) {
+        navigate("/dashboard");
+        return;
+      }
+
+      setSignupInfo(response?.message || "Account created. Wait for admin approval before signing in.");
+      setMode("login");
+      signupForm.reset({
+        name: "",
+        email: values.email,
+        password: "",
+        role: "faculty",
+        designation: values.designation || "Assistant Professor",
+        department: values.department || "Computer Engineering and IT",
+        phone: values.phone || "+91 0000000000",
+      });
     } catch (error) {
       signupForm.setError("root", { message: error.message || "Signup failed" });
     }
@@ -187,7 +203,11 @@ export default function LoginPage() {
                   <button
                     key={m}
                     type="button"
-                    onClick={() => { setMode(m); loginForm.clearErrors(); }}
+                    onClick={() => {
+                      setMode(m);
+                      setSignupInfo("");
+                      loginForm.clearErrors();
+                    }}
                     className={`flex-1 rounded-lg py-2 text-sm font-bold transition ${
                       mode === m ? "bg-white shadow-sm text-[#9d2235]" : "text-slate-500 hover:text-slate-700"
                     }`}
@@ -200,6 +220,11 @@ export default function LoginPage() {
               {/* Login form */}
               {mode === "login" && (
                 <form className="mt-5 space-y-4" onSubmit={loginForm.handleSubmit(onLogin)}>
+                  {signupInfo && (
+                    <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+                      {signupInfo}
+                    </p>
+                  )}
                   <div>
                     <label className={LABEL}>Email</label>
                     <input className={INPUT} {...loginForm.register("email")} placeholder="you@vjti.ac.in" />

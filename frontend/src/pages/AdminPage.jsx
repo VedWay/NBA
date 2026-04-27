@@ -83,7 +83,7 @@ export default function AdminPage() {
     <div className="flex min-h-screen flex-col bg-slate-50">
 
       {/* ── Top bar ── */}
-      <div className="border-b border-slate-200 bg-white px-6 py-4">
+      <div className="border-b border-slate-200 bg-white px-4 py-4 md:px-6">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#9d2235]">
@@ -118,13 +118,13 @@ export default function AdminPage() {
       </div>
 
       {/* ── Body: sidebar + content ── */}
-      <div className="mx-auto flex w-full max-w-[1400px] flex-1 gap-0">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-1 gap-0 px-3 py-3 md:px-4 md:py-4">
 
         {/* ════ LEFT SIDEBAR ════ */}
         <aside className="flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white">
 
           {/* Sidebar brand strip */}
-          <div className="border-b border-slate-100 px-5 py-4">
+          <div className="border-b border-slate-100 px-4 py-4 md:px-5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Request Center</p>
           </div>
 
@@ -268,7 +268,7 @@ export default function AdminPage() {
           </nav>
 
           {/* Sidebar footer */}
-          <div className="border-t border-slate-100 px-5 py-4">
+          <div className="border-t border-slate-100 px-4 py-4 md:px-5">
             <Link
               to="/admin/query"
               className="flex items-center gap-2 text-xs font-semibold text-slate-400 transition hover:text-[#9d2235]"
@@ -282,7 +282,7 @@ export default function AdminPage() {
         {/* ════ RIGHT CONTENT PANEL ════ */}
         <main className="min-w-0 flex-1 bg-slate-50">
           {/* Content header breadcrumb */}
-          <div className="border-b border-slate-200 bg-white px-8 py-4">
+          <div className="border-b border-slate-200 bg-white px-4 py-4 md:px-6">
             <div className="flex items-center gap-2 text-xs text-slate-400">
               <span className="font-semibold text-slate-500">Admin</span>
               <span>/</span>
@@ -294,7 +294,7 @@ export default function AdminPage() {
             {activeSub?.desc && <p className="text-xs text-slate-400">{activeSub.desc}</p>}
           </div>
 
-          <div className="p-8">
+          <div className="p-4 md:p-6 xl:p-8">
             {isFacultySection && (
               <AdminPanel initialTab={adminPanelTab} />
             )}

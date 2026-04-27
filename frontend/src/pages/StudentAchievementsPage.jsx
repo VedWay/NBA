@@ -59,7 +59,7 @@ const StudentAchievementsPage = () => {
       {/* Hero */}
       <section className="hero">
         <div className="hero__pattern"></div>
-        <div className="container hero__inner">
+        <div className="mx-auto w-full max-w-7xl px-4 md:px-8 hero__inner">
           <div className="hero__badge">
             <Award size={14} className="mr-1" /> Est. 1887
           </div>
@@ -89,7 +89,7 @@ const StudentAchievementsPage = () => {
 
       {/* Stats Bar */}
       <section className="stats">
-        <div className="container stats__grid">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 sm:grid-cols-2 lg:grid-cols-4 md:px-8 stats__grid">
           {stats.map((s, i) => (
             <div key={i} className="stat-item">
               <div className="stat-item__icon">
@@ -104,7 +104,7 @@ const StudentAchievementsPage = () => {
 
       {/* Achievements Section */}
       <section className="achievements-section" id="achievements">
-        <div className="container">
+        <div className="mx-auto w-full max-w-7xl px-4 md:px-8">
           <div className="section-header">
             <div>
               <h2 className="section-title">Hall of Excellence</h2>

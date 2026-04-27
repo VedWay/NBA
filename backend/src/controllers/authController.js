@@ -35,6 +35,26 @@ function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+async function getFacultyApprovalStatusByIdentity({ authUserId, email }) {
+  const normalizedEmail = normalizeEmail(email);
+
+  let query = supabaseAdmin
+    .from("faculty")
+    .select("id,is_approved")
+    .limit(1);
+
+  if (authUserId) {
+    query = query.eq("user_id", authUserId);
+  } else if (normalizedEmail) {
+    query = query.ilike("email", normalizedEmail);
+  } else {
+    return null;
+  }
+
+  const { data } = await query.maybeSingle();
+  return data || null;
+}
+
 async function syncUserRoleRow({ authUserId, email, role, passwordHash }) {
   const normalizedEmail = normalizeEmail(email);
   const payload = {
@@ -126,8 +146,30 @@ export async function login(req, res) {
     return res.status(401).json({ message: "Invalid email or password" });
   }
 
-  const role = userRow.role || "viewer";
+  let role = userRow.role || "viewer";
   await linkFacultyProfileToAuthUser(userRow.auth_user_id, userRow.email);
+
+  const facultyProfile = await getFacultyApprovalStatusByIdentity({
+    authUserId: userRow.auth_user_id,
+    email: userRow.email,
+  });
+
+  // Backfill role for legacy accounts that were approved in faculty table but still marked as viewer.
+  if (facultyProfile?.is_approved && role !== "admin" && role !== "student") {
+    role = "faculty";
+    if (userRow.role !== "faculty") {
+      await supabaseAdmin
+        .from("users")
+        .update({ role: "faculty" })
+        .eq("auth_user_id", userRow.auth_user_id);
+    }
+  }
+
+  if (role === "faculty") {
+    if (!facultyProfile?.is_approved) {
+      return res.status(403).json({ message: "Your faculty account is pending admin approval." });
+    }
+  }
 
   const backendToken = jwt.sign(
     {
@@ -223,6 +265,17 @@ export async function register(req, res) {
   }
 
   await linkFacultyProfileToAuthUser(authUserId, normalizedEmail);
+
+  if (role === "faculty") {
+    return res.status(201).json({
+      message: "Faculty account created. Wait for admin approval before signing in.",
+      role,
+      user: {
+        id: authUserId,
+        email: normalizedEmail,
+      },
+    });
+  }
 
   const backendToken = jwt.sign(
     {
@@ -353,6 +406,24 @@ export async function googleLogin(req, res) {
 
     if (!loginAsStudent) {
       await linkFacultyProfileToAuthUser(authUserId, normalizedEmail);
+
+      const facultyProfile = await getFacultyApprovalStatusByIdentity({ authUserId, email: normalizedEmail });
+
+      if (facultyProfile?.is_approved && role !== "admin" && role !== "student") {
+        role = "faculty";
+        if (existingUser?.role !== "faculty") {
+          await supabaseAdmin
+            .from("users")
+            .update({ role: "faculty" })
+            .eq("auth_user_id", authUserId);
+        }
+      }
+
+      if (role === "faculty") {
+        if (!facultyProfile?.is_approved) {
+          return res.status(403).json({ message: "Your faculty account is pending admin approval." });
+        }
+      }
     }
 
     const backendToken = jwt.sign(

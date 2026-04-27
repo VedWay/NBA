@@ -198,6 +198,22 @@ export async function approveEntry(req, res) {
     return res.status(500).json({ message: error.message });
   }
 
+  if (table === "faculty") {
+    const approvedAuthUserId = data?.user_id || beforeRecord?.user_id || null;
+    if (approvedAuthUserId) {
+      await supabaseAdmin
+        .from("users")
+        .update({ role: "faculty" })
+        .eq("auth_user_id", approvedAuthUserId);
+    } else if (data?.email || beforeRecord?.email) {
+      const normalizedEmail = String(data?.email || beforeRecord?.email).trim().toLowerCase();
+      await supabaseAdmin
+        .from("users")
+        .update({ role: "faculty" })
+        .ilike("email", normalizedEmail);
+    }
+  }
+
   const recipientUserId = await resolveRecipientUserId(table, beforeRecord || data);
   await createNotification(
     recipientUserId,

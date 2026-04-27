@@ -1,14 +1,18 @@
 .submit-page {
-  padding: 40px 0 80px;
+  padding: 32px 0 72px;
   background: #f8f9fa;
   min-height: 100vh;
 }
 
 .submit-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 24px;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
 }
 
 .back-btn {
@@ -46,7 +50,7 @@
 .submit-layout {
   display: grid;
   grid-template-columns: 1fr 300px;
-  gap: 32px;
+  gap: 24px;
   align-items: start;
 }
 
@@ -54,7 +58,7 @@
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 32px;
+  padding: 28px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
@@ -209,6 +213,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 20px;
+  box-shadow: 0 6px 14px -14px rgba(15, 23, 42, 0.45);
 }
 
 .sidebar-card h4 {
@@ -316,7 +321,22 @@
 }
 
 @media (max-width: 600px) {
+  .submit-page { padding: 20px 0 48px; }
+  .submit-header {
+    gap: 14px;
+    padding: 14px;
+  }
+  .submit-title { font-size: 26px; }
   .form-grid--2, .form-grid--3 { grid-template-columns: 1fr; }
   .submit-form { padding: 20px; }
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+  .btn-primary,
+  .btn-ghost {
+    width: 100%;
+    justify-content: center;
+  }
   .success-actions { flex-direction: column; }
 }

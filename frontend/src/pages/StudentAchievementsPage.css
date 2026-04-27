@@ -172,15 +172,14 @@
 
 /* === ACHIEVEMENTS === */
 .achievements-section {
-  padding: 20px 0 64px;
+  padding: 28px 0 72px;
 }
 
 .section-header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 32px;
-  margin-left: 24px;
+  margin-bottom: 24px;
 }
 
 .section-title {
@@ -202,10 +201,10 @@
   border-radius: 12px;
   padding: 20px 24px;
   margin-bottom: 20px;
-  margin-left: 18px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-shadow: 0 8px 20px -16px rgba(15, 23, 42, 0.35);
 }
 
 .filters__search {
@@ -250,16 +249,16 @@
 .filters__clear:hover { color: #9d2235; background: #fdf0f2; }
 
 .filters__groups {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 24px;
-  flex-wrap: wrap;
-  align-items: center;
 }
 
 .filter-group {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .filter-label {
@@ -303,6 +302,10 @@
   font-size: 14px;
   color: #888899;
   margin-bottom: 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
 }
 
 .results-count strong { color: #1a1a2e; }
@@ -310,7 +313,7 @@
 /* === CARDS GRID === */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
 }
 
@@ -376,13 +379,14 @@
 /* Responsive */
 @media (max-width: 900px) {
   .stats__grid { grid-template-columns: repeat(2, 1fr); }
-  .section-header,
-  .filters { margin-left: 0; }
+  .section-header { align-items: flex-start; }
 }
 
 @media (max-width: 600px) {
   .stats__grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .filters__groups { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .filters { padding: 16px; }
+  .filters__groups { gap: 12px; }
+  .filter-group { flex-direction: column; gap: 8px; }
   .cards-grid { grid-template-columns: 1fr; }
 }
 
