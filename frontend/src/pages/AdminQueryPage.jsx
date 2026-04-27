@@ -5,7 +5,7 @@ import { adminApi } from "../api/facultyApi";
 import { useAuth } from "../context/AuthContext";
 import { ArrowLeft, FolderSearch, Search, RotateCcw, Loader2, ExternalLink, Calendar } from "lucide-react";
 
-export default function AdminQueryPage() {
+export default function AdminQueryPage({ embedded = false }) {
   const { token } = useAuth();
   const [filters, setFilters] = useState({
     q: "",
@@ -28,22 +28,28 @@ export default function AdminQueryPage() {
 
   const inputClass = "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm transition focus:border-[#9d2235]/40 focus:outline-none focus:ring-2 focus:ring-[#9d2235]/10";
 
-  return (
-    <section className="mx-auto max-w-7xl space-y-6 px-4 py-10 md:px-8">
+  const content = (
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link to="/admin" className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">
-            <ArrowLeft className="h-4 w-4" /> Dashboard
-          </Link>
+          {!embedded && (
+            <Link to="/admin" className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">
+              <ArrowLeft className="h-4 w-4" /> Dashboard
+            </Link>
+          )}
           <div className="flex items-center gap-2">
             <FolderSearch className="h-5 w-5 text-[#9d2235]" />
             <h1 className="text-2xl font-bold text-slate-800">Query Search</h1>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/admin/history" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:text-[#9d2235]">Approval History</Link>
-          <Link to="/admin/faculty" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:text-[#9d2235]">Faculty Directory</Link>
+          {!embedded && (
+            <>
+              <Link to="/admin/history" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:text-[#9d2235]">Approval History</Link>
+              <Link to="/admin/faculty" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:text-[#9d2235]">Faculty Directory</Link>
+            </>
+          )}
         </div>
       </div>
 
@@ -164,6 +170,16 @@ export default function AdminQueryPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <section className="mx-auto max-w-7xl space-y-6 px-4 py-10 md:px-8">
+      {content}
     </section>
   );
 }

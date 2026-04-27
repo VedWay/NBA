@@ -4,6 +4,7 @@ import { achievementApi, adminApi } from "../api/facultyApi";
 import { useAuth } from "../context/AuthContext";
 import { generateAdminReportPDF } from "../utils/pdfGenerator";
 import adminBasePhoto from "../assets/admin-base-photo.svg";
+import { BookUser, CheckCircle2, Clock, Layers } from "lucide-react";
 
 function labelForRow(row) {
   return row.title || row.name || row.course || row.degree || "Untitled";
@@ -201,6 +202,13 @@ export default function AdminPanel({ initialTab = "pending" }) {
     () => [...filteredFaculty].sort((a, b) => Number(a.is_approved) - Number(b.is_approved)),
     [filteredFaculty],
   );
+
+  const facultyStats = [
+    { label: "Total", value: facultyDirectory.length, icon: BookUser, tone: "bg-[#fdf0f2] text-[#9d2235]" },
+    { label: "Approved", value: facultyDirectory.filter((f) => f.is_approved).length, icon: CheckCircle2, tone: "bg-[#f0fdf4] text-[#16a34a]" },
+    { label: "Pending", value: facultyDirectory.filter((f) => !f.is_approved).length, icon: Clock, tone: "bg-[#fff7ed] text-[#d97706]" },
+    { label: "Departments", value: departmentOptions.length > 0 ? departmentOptions.filter((d) => d !== "all").length : 0, icon: Layers, tone: "bg-[#e7efff] text-[#3357d1]" },
+  ];
 
   const filteredPendingEntries = useMemo(
     () => filteredPendingGroups.flatMap((group) => group.entries.map(({ table, row }) => ({ table, id: row.id }))),
@@ -508,23 +516,6 @@ export default function AdminPanel({ initialTab = "pending" }) {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1.5">
-        {[
-          { key: "pending", label: "Pending" },
-          { key: "history", label: "Past Approvals" },
-          { key: "faculty", label: "Faculty Directory" },
-          { key: "achievements", label: "Achievements" },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${activeTab === tab.key ? "bg-[#9d2235] text-white shadow-sm" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-400">Filters</h2>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -699,6 +690,20 @@ export default function AdminPanel({ initialTab = "pending" }) {
 
       {activeTab === "faculty" && (
         <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 xl:grid-cols-4">
+            {facultyStats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div key={stat.label} className="rounded-2xl border border-[#ead8dc] bg-white px-4 py-4 text-center shadow-sm">
+                  <div className={`mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-xl ${stat.tone}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="text-2xl font-extrabold leading-none text-slate-800">{stat.value}</p>
+                  <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">{stat.label}</p>
+                </div>
+              );
+            })}
+          </div>
           <div className="border-b border-slate-100 px-5 py-4">
             <h2 className="text-lg font-bold text-slate-800">Faculty Directory</h2>
             <p className="text-xs text-slate-400">{sortedFaculty.length} records</p>
