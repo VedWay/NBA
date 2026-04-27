@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import AdminPanel from "../components/AdminPanel";
 import StudentAdminSection from "../components/StudentAdminSection";
@@ -25,8 +25,8 @@ import {
 
 const FACULTY_SUBS = [
   { key: "faculty:pending",   label: "Pending Requests",   icon: Clock,         panelTab: "pending",   desc: "New faculty data awaiting review" },
-  { key: "faculty:history",   label: "Approval History",   icon: History,       panelTab: "history",   desc: "Past approved / rejected items" },
-  { key: "faculty:directory", label: "Faculty Directory",  icon: BookUser,      panelTab: "faculty",   desc: "Browse all faculty records" },
+  { key: "faculty:history",   label: "Approval History",   icon: History,       panelTab: "history",   link: "/admin/history", desc: "Past approved / rejected items" },
+  { key: "faculty:directory", label: "Faculty Directory",  icon: BookUser,      panelTab: "faculty",   link: "/admin/faculty", desc: "Browse all faculty records" },
   { key: "faculty:query",     label: "Query Search",       icon: FileSearch,    panelTab: null,        link: "/admin/query", desc: "Advanced data query tool" },
 ];
 
@@ -38,11 +38,27 @@ const STUDENT_SUBS = [
 ];
 
 export default function AdminPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { token } = useAuth();
 
-  const [activeSection, setActiveSection] = useState("faculty:pending");
+  const sectionFromPath = (pathname) => {
+    if (pathname === "/admin/history") return "faculty:history";
+    if (pathname === "/admin/faculty") return "faculty:directory";
+    if (pathname === "/admin/students") return "student:all";
+    return "faculty:pending";
+  };
+
+  const [activeSection, setActiveSection] = useState(() => sectionFromPath(location.pathname));
   const [facultyOpen, setFacultyOpen] = useState(true);
   const [studentOpen, setStudentOpen] = useState(false);
+
+  useEffect(() => {
+    const nextSection = sectionFromPath(location.pathname);
+    setActiveSection(nextSection);
+    setFacultyOpen(nextSection.startsWith("faculty:"));
+    setStudentOpen(nextSection.startsWith("student:"));
+  }, [location.pathname]);
 
   const { data: pendingData } = useQuery({
     queryKey: ["pending", "admin-stats"],
@@ -172,22 +188,13 @@ export default function AdminPage() {
                 <div className="mt-1 ml-4 space-y-0.5 border-l-2 border-slate-100 pl-3">
                   {FACULTY_SUBS.map((sub) => {
                     const isActive = activeSection === sub.key;
-                    return sub.link ? (
-                      <Link
-                        key={sub.key}
-                        to={sub.link}
-                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
-                      >
-                        <sub.icon className="h-4 w-4 shrink-0 text-slate-400" />
-                        <div>
-                          <p className="text-xs font-semibold">{sub.label}</p>
-                          <p className="text-[10px] text-slate-400">{sub.desc}</p>
-                        </div>
-                      </Link>
-                    ) : (
+                    return (
                       <button
                         key={sub.key}
-                        onClick={() => setActiveSection(sub.key)}
+                        onClick={() => {
+                          setActiveSection(sub.key);
+                          if (sub.link) navigate(sub.link);
+                        }}
                         className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
                           isActive
                             ? "bg-[#9d2235]/10 text-[#9d2235]"

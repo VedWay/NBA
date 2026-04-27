@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { achievementApi, adminApi } from "../api/facultyApi";
 import { useAuth } from "../context/AuthContext";
@@ -85,6 +85,10 @@ export default function AdminPanel({ initialTab = "pending" }) {
     from: "",
     to: "",
   });
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const { data: pendingData, isLoading, error } = useQuery({
     queryKey: ["pending"],

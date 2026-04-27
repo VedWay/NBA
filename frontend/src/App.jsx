@@ -6,8 +6,6 @@ import LoginPage from "./pages/LoginPage";
 import FacultyListPage from "./pages/FacultyListPage";
 import FacultyProfilePage from "./pages/FacultyProfilePage";
 import AdminPage from "./pages/AdminPage";
-import AdminHistoryPage from "./pages/AdminHistoryPage";
-import AdminFacultyPage from "./pages/AdminFacultyPage";
 import AdminQueryPage from "./pages/AdminQueryPage";
 import StudentAchievementsPage from "./pages/StudentAchievementsPage";
 import StudentSubmitPage from "./pages/StudentSubmitPage";
@@ -72,8 +70,8 @@ export default function App() {
 
         <Route element={<ProtectedRoute roles={["admin"]} redirectTo="/admin-login" />}>
           <Route path="/admin" element={<AdminPage />} />
-          <Route path="/admin/history" element={<AdminHistoryPage />} />
-          <Route path="/admin/faculty" element={<AdminFacultyPage />} />
+          <Route path="/admin/history" element={<AdminPage />} />
+          <Route path="/admin/faculty" element={<AdminPage />} />
           <Route path="/admin/query" element={<AdminQueryPage />} />
           <Route path="/admin/students" element={<AdminStudentPage />} />
         </Route>
