@@ -29,7 +29,7 @@ export default function AdminQueryPage({ embedded = false }) {
   const inputClass = "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm transition focus:border-[#9d2235]/40 focus:outline-none focus:ring-2 focus:ring-[#9d2235]/10";
 
   const content = (
-    <div className="space-y-6">
+    <div className="smooth-fade space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -143,7 +143,7 @@ export default function AdminQueryPage({ embedded = false }) {
           </p>
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {data.map((row) => (
-              <article key={`${row.table}-${row.id}`} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+              <article key={`${row.table}-${row.id}`} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">{row.table}</span>
                   <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${row.is_approved ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>

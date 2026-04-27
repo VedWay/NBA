@@ -290,13 +290,13 @@ export default function AdminPage() {
             {activeSub?.desc && <p className="text-xs text-[#a8727b]">{activeSub.desc}</p>}
           </div>
 
-          <div className="p-4 md:p-6 xl:p-8">
+          <div className="smooth-fade p-4 md:p-6 xl:p-8">
             {isAdminSection && (
               <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {dashboardStats.map((stat) => {
                   const Icon = stat.icon;
                   return (
-                    <div key={stat.label} className="rounded-2xl border border-[#ead8dc] bg-white px-5 py-5 text-center shadow-sm">
+                    <div key={stat.label} className="rounded-2xl border border-[#ead8dc] bg-white px-5 py-5 text-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
                       <div className={`mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl ${stat.badge}`}>
                         <Icon className="h-5 w-5" />
                       </div>

@@ -508,7 +508,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
   if (error) return <p className="text-rose-700">{error.message}</p>;
 
   return (
-    <div className="space-y-8">
+    <div className="smooth-fade space-y-8">
       {message && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-amber-400" />
@@ -666,14 +666,14 @@ export default function AdminPanel({ initialTab = "pending" }) {
       )}
 
       {activeTab === "history" && (
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
           <div className="border-b border-slate-100 px-5 py-4">
             <h2 className="text-lg font-bold text-slate-800">Past Approvals</h2>
             <p className="text-xs text-slate-400">{filteredHistory.length} records</p>
           </div>
           <div className="divide-y divide-slate-100">
             {filteredHistory.map((item) => (
-              <div key={`${item.table}-${item.id}-${item.approved_at}`} className="px-5 py-3">
+              <div key={`${item.table}-${item.id}-${item.approved_at}`} className="px-5 py-3 transition-colors duration-200 hover:bg-slate-50/80">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold text-slate-800">{item.label}</p>
@@ -689,7 +689,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
       )}
 
       {activeTab === "faculty" && (
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
           <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 xl:grid-cols-4">
             {facultyStats.map((stat) => {
               const Icon = stat.icon;
@@ -710,7 +710,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
           </div>
           <div className="grid grid-cols-1 gap-px bg-slate-100 lg:grid-cols-2">
             {sortedFaculty.map((f) => (
-              <div key={f.id} className="flex items-center justify-between bg-white px-5 py-3">
+              <div key={f.id} className="flex items-center justify-between bg-white px-5 py-3 transition-colors duration-200 hover:bg-slate-50">
                 <div className="flex items-center gap-3">
                   <img src={f.photo_url || adminBasePhoto} alt={f.name} className="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-100" />
                   <div>
@@ -832,7 +832,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
 
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {achievements.map((item) => (
-              <div key={item.id} className="liquid-panel rounded-2xl p-3">
+              <div key={item.id} className="liquid-panel rounded-2xl p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                 <AchievementPreview item={item} />
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="mt-2">
