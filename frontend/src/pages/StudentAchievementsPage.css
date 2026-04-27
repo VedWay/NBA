@@ -40,9 +40,9 @@
 }
 
 .hero__title {
-  font-family: 'Libre Baskerville', serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: clamp(40px, 6vw, 68px);
-  font-weight: 700;
+  font-weight: 800;
   color: #ffffff;
   line-height: 1.1;
   margin-bottom: 20px;
@@ -50,7 +50,7 @@
 
 .hero__title em {
   font-style: italic;
-  color: #ffb800; /* Gold */
+  color: #d4a017;
 }
 
 .hero__sub {
@@ -156,7 +156,7 @@
 }
 
 .stat-item__value {
-  font-family: 'Libre Baskerville', serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 36px;
   font-weight: 700;
   color: #9d2235;
@@ -183,7 +183,7 @@
 }
 
 .section-title {
-  font-family: 'Libre Baskerville', serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 36px;
   color: #1a1a2e;
   margin-bottom: 4px;
@@ -326,7 +326,7 @@
 }
 
 .empty-state h3 {
-  font-family: 'Libre Baskerville', serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 22px;
   color: #4a4a6a;
   margin-bottom: 8px;
@@ -348,7 +348,7 @@
 }
 
 .footer__logo {
-  font-family: 'Libre Baskerville', serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 28px;
   font-weight: 700;
   color: #ffffff;

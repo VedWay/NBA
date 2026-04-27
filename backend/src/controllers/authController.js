@@ -246,6 +246,13 @@ export async function register(req, res) {
   });
 }
 
+const STUDENT_EMAIL_DOMAINS = ["it.vjti.ac.in", "vjti.ac.in"];
+
+function isStudentEmail(email) {
+  const domain = email.split("@")[1] || "";
+  return STUDENT_EMAIL_DOMAINS.some((d) => domain === d);
+}
+
 export async function googleLogin(req, res) {
   const parsed = googleLoginSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -254,6 +261,7 @@ export async function googleLogin(req, res) {
 
   const { idToken, email, displayName, photoURL } = parsed.data;
   const normalizedEmail = normalizeEmail(email);
+  const loginAsStudent = req.body.loginAsStudent === true;
 
   try {
     // Verify Firebase ID token
@@ -263,6 +271,23 @@ export async function googleLogin(req, res) {
     // Check if the email matches the token
     if (decodedToken.email !== normalizedEmail) {
       return res.status(401).json({ message: "Email mismatch in Google authentication" });
+    }
+
+    // Enforce vjti.ac.in org domain for ALL Google logins
+    const emailDomain = normalizedEmail.split("@")[1] || "";
+    if (emailDomain !== "vjti.ac.in" && !emailDomain.endsWith(".vjti.ac.in")) {
+      return res.status(403).json({
+        message: "Only VJTI organization accounts (@vjti.ac.in) are allowed to sign in.",
+      });
+    }
+
+    // If logging in as student, enforce subdomain restriction
+    if (loginAsStudent) {
+      if (!isStudentEmail(normalizedEmail)) {
+        return res.status(403).json({
+          message: "Only students with @it.vjti.ac.in or @vjti.ac.in email addresses can log in as students.",
+        });
+      }
     }
 
     // Check if user exists in our database
@@ -277,15 +302,16 @@ export async function googleLogin(req, res) {
     }
 
     let authUserId;
-    let role = "viewer"; // Default role for Google sign-in users
+    let role;
 
     if (existingUser) {
       // User exists, use their existing role
       authUserId = existingUser.auth_user_id;
       role = existingUser.role || "viewer";
     } else {
-      // New user, create account
+      // New user — determine role
       authUserId = randomUUID();
+      role = loginAsStudent ? "student" : "viewer";
       
       const roleSyncError = await syncUserRoleRow({
         authUserId,
@@ -297,33 +323,37 @@ export async function googleLogin(req, res) {
         return res.status(500).json({ message: `Failed to sync user role: ${roleSyncError.message}` });
       }
 
-      // Create faculty profile for new Google users
-      const { error: facultyError } = await supabaseAdmin.from("faculty").insert({
-        user_id: authUserId,
-        name: displayName,
-        designation: "Faculty",
-        department: "Computer Engineering and IT",
-        email: normalizedEmail,
-        phone: "",
-        bio: "Faculty profile created via Google Sign-In.",
-        research_area: "",
-        experience_teaching: 0,
-        experience_industry: 0,
-        is_approved: false,
-        created_by: authUserId,
-      });
+      if (!loginAsStudent) {
+        // Create faculty profile for new non-student Google users
+        const { error: facultyError } = await supabaseAdmin.from("faculty").insert({
+          user_id: authUserId,
+          name: displayName,
+          designation: "Faculty",
+          department: "Computer Engineering and IT",
+          email: normalizedEmail,
+          phone: "",
+          bio: "Faculty profile created via Google Sign-In.",
+          research_area: "",
+          experience_teaching: 0,
+          experience_industry: 0,
+          is_approved: false,
+          created_by: authUserId,
+        });
 
-      if (facultyError) {
-        return res.status(500).json({ message: facultyError.message });
+        if (facultyError) {
+          return res.status(500).json({ message: facultyError.message });
+        }
+
+        await notifyAdmins(
+          "New Faculty Registration via Google",
+          `${displayName} registered via Google Sign-In and profile approval is pending.`,
+        );
       }
-
-      await notifyAdmins(
-        "New Faculty Registration via Google",
-        `${displayName} registered via Google Sign-In and profile approval is pending.`,
-      );
     }
 
-    await linkFacultyProfileToAuthUser(authUserId, normalizedEmail);
+    if (!loginAsStudent) {
+      await linkFacultyProfileToAuthUser(authUserId, normalizedEmail);
+    }
 
     const backendToken = jwt.sign(
       {

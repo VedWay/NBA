@@ -20,13 +20,23 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const StudentAdminSection = () => {
+const StudentAdminSection = ({ initialFilter = 'all' }) => {
   const { user } = useAuth();
   const [achievements, setAchievements] = useState([]);
   const [categories, setCategories] = useState([]);
   const [departments, setDepartments] = useState([]);
-  
-  const [filterStatus, setFilterStatus] = useState('All');
+
+  const resolveFilter = (f) => {
+    if (!f || f === 'all') return 'All';
+    return f.charAt(0).toUpperCase() + f.slice(1).toLowerCase();
+  };
+
+  const [filterStatus, setFilterStatus] = useState(() => resolveFilter(initialFilter));
+
+  useEffect(() => {
+    setFilterStatus(resolveFilter(initialFilter));
+  }, [initialFilter]);
+
   const [filterDeptId, setFilterDeptId] = useState('All');
   const [filterCategoryId, setFilterCategoryId] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');

@@ -6,11 +6,11 @@ import vjtiLogo from "../assets/vjti-logo.svg";
 
 function Section({ title, id, canManage, onAddClick, addLabel = "+ Add", children }) {
   return (
-    <section id={id} className="space-y-3 scroll-mt-24">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-3xl font-black text-blue-700">{title}</h2>
+    <section id={id} className="space-y-4 scroll-mt-24">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
+        <h2 className="text-xl font-bold text-slate-800">{title}</h2>
         {canManage && (
-          <button onClick={onAddClick} className="rounded border border-blue-700 px-3 py-1 text-xs font-bold text-blue-700 hover:bg-blue-700 hover:text-white">
+          <button onClick={onAddClick} className="flex items-center gap-1 rounded-lg border border-[#9d2235]/30 bg-[#9d2235]/5 px-3 py-1.5 text-xs font-bold text-[#9d2235] transition hover:bg-[#9d2235] hover:text-white">
             {addLabel}
           </button>
         )}
@@ -22,15 +22,16 @@ function Section({ title, id, canManage, onAddClick, addLabel = "+ Add", childre
 
 function approvalBadge(approved) {
   return (
-    <span className={`rounded px-2 py-1 text-xs font-semibold ${approved ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
-      {approved ? "Approved" : "Pending Approval"}
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${approved ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${approved ? "bg-emerald-500" : "bg-amber-500"}`} />
+      {approved ? "Approved" : "Pending"}
     </span>
   );
 }
 
 function Field({ label, children }) {
   return (
-    <label className="grid gap-1 text-sm font-semibold text-slate-700">
+    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
       <span>{label}</span>
       {children}
     </label>
@@ -38,21 +39,21 @@ function Field({ label, children }) {
 }
 
 function textInputClass() {
-  return "w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-700 focus:outline-none";
+  return "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-[#9d2235]/40 focus:outline-none focus:ring-2 focus:ring-[#9d2235]/10";
 }
 
 function ItemActions({ canManage, isEditing, onEdit, onSave, onDelete, busy }) {
   if (!canManage) return null;
   return (
-    <div className="flex items-center gap-2">
-      <button onClick={onEdit} className="rounded border border-blue-700 px-2 py-1 text-xs font-bold text-blue-700">
+    <div className="flex items-center gap-1.5">
+      <button onClick={onEdit} className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">
         {isEditing ? "Cancel" : "Edit"}
       </button>
-      <button onClick={onDelete} disabled={busy} className="rounded border border-rose-600 px-2 py-1 text-xs font-bold text-rose-700">
+      <button onClick={onDelete} disabled={busy} className="rounded-md border border-rose-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-rose-600 shadow-sm transition hover:bg-rose-50">
         Delete
       </button>
       {isEditing && (
-        <button onClick={onSave} disabled={busy} className="gold-button rounded px-2 py-1 text-xs font-bold text-slate-900">
+        <button onClick={onSave} disabled={busy} className="rounded-md bg-[#9d2235] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#b51a34]">
           Save
         </button>
       )}
@@ -456,98 +457,136 @@ export default function FacultyProfile({
 
   return (
     <div className="space-y-8 smooth-fade">
-      {message && <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-slate-700">{message}</p>}
+      {message && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-amber-400" />
+          <p className="text-sm text-slate-700">{message}</p>
+        </div>
+      )}
 
-      <div className="rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 p-6 text-white shadow-xl">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]">
-          <img
-            src={faculty.photo_url || "https://via.placeholder.com/180x180?text=Faculty"}
-            alt={faculty.name}
-            className="h-52 w-52 rounded border-2 border-white/80 object-cover"
-          />
-          <div className="space-y-3">
-            <h1 className="text-4xl font-extrabold text-white">{faculty.name}</h1>
-            <p className="text-2xl font-light text-white/90">{faculty.designation || "Faculty"}</p>
-            <p>{faculty.department}</p>
-            <p>{faculty.email}</p>
-            <p>{faculty.phone}</p>
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              {faculty.linkedin_url && (
-                <IconLink href={faculty.linkedin_url} label="LinkedIn">
-                  <LinkedInIcon />
-                </IconLink>
-              )}
-              {faculty.github_url && (
-                <IconLink href={faculty.github_url} label="GitHub">
-                  <GithubIcon />
-                </IconLink>
-              )}
-              {faculty.google_scholar_url && (
-                <IconLink href={faculty.google_scholar_url} label="Google Scholar">
-                  <ScholarIcon />
-                </IconLink>
-              )}
-              {faculty.website_url && (
-                <IconLink href={faculty.website_url} label="Website">
-                  <GlobeIcon />
-                </IconLink>
+      {/* Profile Header */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="h-2 bg-gradient-to-r from-[#9d2235] via-[#b51a34] to-[#c3475b]" />
+        <div className="bg-gradient-to-br from-[#7f1022] via-[#9d2235] to-[#5a0b18] px-6 pb-6 pt-5">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-[180px_1fr_auto]">
+            {faculty.photo_url ? (
+              <img
+                src={faculty.photo_url}
+                alt={faculty.name}
+                className="h-44 w-44 rounded-xl border-2 border-white/20 object-cover shadow-lg"
+              />
+            ) : (
+              <div className="flex h-44 w-44 items-center justify-center rounded-xl border-2 border-white/20 bg-white/10 text-4xl font-bold text-white shadow-lg">
+                {(faculty.name || "F").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <div className="space-y-2.5">
+              <div>
+                <h1 className="text-3xl font-extrabold text-white md:text-4xl">{faculty.name}</h1>
+                <p className="mt-1 text-lg font-medium text-white/80">{faculty.designation || "Faculty"}</p>
+              </div>
+              <p className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur-sm">
+                {faculty.department}
+              </p>
+              <div className="space-y-1 text-sm text-white/70">
+                <p>{faculty.email}</p>
+                <p>{faculty.phone}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {faculty.linkedin_url && (
+                  <IconLink href={faculty.linkedin_url} label="LinkedIn">
+                    <LinkedInIcon />
+                  </IconLink>
+                )}
+                {faculty.github_url && (
+                  <IconLink href={faculty.github_url} label="GitHub">
+                    <GithubIcon />
+                  </IconLink>
+                )}
+                {faculty.google_scholar_url && (
+                  <IconLink href={faculty.google_scholar_url} label="Google Scholar">
+                    <ScholarIcon />
+                  </IconLink>
+                )}
+                {faculty.website_url && (
+                  <IconLink href={faculty.website_url} label="Website">
+                    <GlobeIcon />
+                  </IconLink>
+                )}
+              </div>
+              {canManage && <div className="pt-1">{approvalBadge(Boolean(faculty.is_approved))}</div>}
+            </div>
+            <div className="flex flex-col items-start gap-2 md:items-end">
+              <button onClick={handleResumeDownload} className="rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-xs font-bold text-white backdrop-blur-sm transition hover:bg-white/20">
+                Download Resume
+              </button>
+              {canManage && (
+                <>
+                  <button onClick={triggerPhotoPicker} className="rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-xs font-bold text-white backdrop-blur-sm transition hover:bg-white/20">
+                    Upload Photo
+                  </button>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
+                  <button onClick={() => setOpenForm((v) => (v === "faculty" ? "" : "faculty"))} className="rounded-lg bg-white px-4 py-2 text-xs font-bold text-[#9d2235] transition hover:bg-white/90">
+                    Edit Profile
+                  </button>
+                </>
               )}
             </div>
-            {canManage && approvalBadge(Boolean(faculty.is_approved))}
           </div>
-          <div className="flex flex-col items-start gap-2 md:items-end">
-            <button onClick={handleResumeDownload} className="rounded border border-white/80 px-3 py-2 text-sm font-semibold">
-              Download Resume
-            </button>
-            {canManage && (
-              <>
-                <button onClick={triggerPhotoPicker} className="rounded border border-white/80 px-3 py-2 text-sm font-semibold">
-                  Upload Photo
-                </button>
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
-                <button onClick={() => setOpenForm((v) => (v === "faculty" ? "" : "faculty"))} className="rounded border border-white/80 px-3 py-2 text-sm font-semibold">
-                  Edit Profile
-                </button>
-              </>
-            )}
+        </div>
+
+        {/* Experience stats bar */}
+        <div className="flex flex-wrap gap-6 border-t border-slate-100 px-6 py-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Teaching</p>
+            <p className="text-lg font-bold text-slate-800">{faculty.experience_teaching || 0} yrs</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Industry</p>
+            <p className="text-lg font-bold text-slate-800">{faculty.experience_industry || 0} yrs</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Publications</p>
+            <p className="text-lg font-bold text-slate-800">{publications.length}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Projects</p>
+            <p className="text-lg font-bold text-slate-800">{projects.length}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Awards</p>
+            <p className="text-lg font-bold text-slate-800">{awards.length}</p>
           </div>
         </div>
       </div>
 
       {canManage && (
-        <section className="rounded border border-slate-300 bg-white px-4 py-3 text-slate-800">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Request Updates</h2>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setUpdatesTab("all")}
-                className={`rounded px-2 py-1 text-xs font-semibold ${updatesTab === "all" ? "bg-slate-800 text-white" : "border border-slate-300 bg-white text-slate-700"}`}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                onClick={() => setUpdatesTab("rejected")}
-                className={`rounded px-2 py-1 text-xs font-semibold ${updatesTab === "rejected" ? "bg-rose-700 text-white" : "border border-slate-300 bg-white text-slate-700"}`}
-              >
-                Rejected
-              </button>
-              <button
-                type="button"
-                onClick={() => setUpdatesTab("approved")}
-                className={`rounded px-2 py-1 text-xs font-semibold ${updatesTab === "approved" ? "bg-emerald-700 text-white" : "border border-slate-300 bg-white text-slate-700"}`}
-              >
-                Approved
-              </button>
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Request Updates</h2>
+            <div className="flex items-center gap-1.5">
+              {[
+                { key: "all", label: "All", active: "bg-slate-800 text-white" },
+                { key: "rejected", label: "Rejected", active: "bg-rose-600 text-white" },
+                { key: "approved", label: "Approved", active: "bg-emerald-600 text-white" },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setUpdatesTab(tab.key)}
+                  className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${updatesTab === tab.key ? tab.active : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="mt-3 max-h-64 space-y-2 overflow-auto">
+          <div className="max-h-64 space-y-2 overflow-auto px-5 py-3">
             {filteredUpdates.slice(0, 30).map((item) => (
               <div
                 key={item.id}
-                className={`rounded border px-3 py-2 ${
+                className={`rounded-xl border px-4 py-3 ${
                   item.status === "rejected"
                     ? "border-rose-200 bg-rose-50"
                     : item.status === "approved"
@@ -557,43 +596,43 @@ export default function FacultyProfile({
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-slate-800">{item.title}</p>
-                  {!item.isRead && <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Unread</span>}
+                  {!item.isRead && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">New</span>}
                 </div>
                 {item.remark ? (
-                  <p className="mt-1 text-sm text-slate-700">Remark: {item.remark}</p>
+                  <p className="mt-1 text-sm text-slate-600">Remark: {item.remark}</p>
                 ) : (
-                  <p className="mt-1 text-sm text-slate-700">{item.message}</p>
+                  <p className="mt-1 text-sm text-slate-600">{item.message}</p>
                 )}
-                {item.createdAt && <p className="mt-1 text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>}
+                {item.createdAt && <p className="mt-1.5 text-[10px] text-slate-400">{new Date(item.createdAt).toLocaleString()}</p>}
               </div>
             ))}
-            {!filteredUpdates.length && <p className="text-sm text-slate-500">No updates in this tab yet.</p>}
+            {!filteredUpdates.length && <p className="py-4 text-center text-sm text-slate-400">No updates in this tab yet.</p>}
           </div>
         </section>
       )}
 
       <div className="space-y-8">
       {canManage && openForm === "faculty" && (
-        <section className="rounded border border-slate-300 bg-white p-4 shadow-sm">
-          <h3 className="mb-3 text-lg font-bold text-slate-800">Update Basic Profile</h3>
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-bold text-slate-800">Update Basic Profile</h3>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <input className="rounded border px-3 py-2" value={profileForm.name} onChange={(e) => setProfileForm((s) => ({ ...s, name: e.target.value }))} placeholder="Name" />
-            <input className="rounded border px-3 py-2" value={profileForm.designation} onChange={(e) => setProfileForm((s) => ({ ...s, designation: e.target.value }))} placeholder="Designation" />
-            <input className="rounded border px-3 py-2" value={profileForm.department} onChange={(e) => setProfileForm((s) => ({ ...s, department: e.target.value }))} placeholder="Department" />
-            <input className="rounded border px-3 py-2" value={profileForm.email} onChange={(e) => setProfileForm((s) => ({ ...s, email: e.target.value }))} placeholder="Email" />
-            <input className="rounded border px-3 py-2" value={profileForm.phone} onChange={(e) => setProfileForm((s) => ({ ...s, phone: e.target.value }))} placeholder="Phone" />
-            <input className="rounded border px-3 py-2" value={profileForm.photo_url} onChange={(e) => setProfileForm((s) => ({ ...s, photo_url: e.target.value }))} placeholder="Photo URL" />
-            <input className="rounded border px-3 py-2" value={profileForm.cv_url} onChange={(e) => setProfileForm((s) => ({ ...s, cv_url: e.target.value }))} placeholder="Resume URL (PDF/Doc)" />
-            <input className="rounded border px-3 py-2" value={profileForm.linkedin_url} onChange={(e) => setProfileForm((s) => ({ ...s, linkedin_url: e.target.value }))} placeholder="LinkedIn URL" />
-            <input className="rounded border px-3 py-2" value={profileForm.github_url} onChange={(e) => setProfileForm((s) => ({ ...s, github_url: e.target.value }))} placeholder="GitHub URL" />
-            <input className="rounded border px-3 py-2" value={profileForm.google_scholar_url} onChange={(e) => setProfileForm((s) => ({ ...s, google_scholar_url: e.target.value }))} placeholder="Google Scholar URL" />
-            <input className="rounded border px-3 py-2" value={profileForm.website_url} onChange={(e) => setProfileForm((s) => ({ ...s, website_url: e.target.value }))} placeholder="Personal Website URL" />
-            <input className="rounded border px-3 py-2" type="number" value={profileForm.experience_teaching} onChange={(e) => setProfileForm((s) => ({ ...s, experience_teaching: Number(e.target.value) }))} placeholder="Teaching Experience" />
-            <input className="rounded border px-3 py-2" type="number" value={profileForm.experience_industry} onChange={(e) => setProfileForm((s) => ({ ...s, experience_industry: Number(e.target.value) }))} placeholder="Industry Experience" />
-            <textarea className="rounded border px-3 py-2 md:col-span-2" rows={2} value={profileForm.research_area} onChange={(e) => setProfileForm((s) => ({ ...s, research_area: e.target.value }))} placeholder="Research Interests" />
-            <textarea className="rounded border px-3 py-2 md:col-span-2" rows={3} value={profileForm.bio} onChange={(e) => setProfileForm((s) => ({ ...s, bio: e.target.value }))} placeholder="Biosketch" />
-            <button onClick={onBasicSave} disabled={busy} className="gold-button rounded px-4 py-2 text-sm font-semibold text-slate-900 md:col-span-2">
-              {busy ? "Saving..." : "Save Profile Change"}
+            <Field label="Name"><input className={textInputClass()} value={profileForm.name} onChange={(e) => setProfileForm((s) => ({ ...s, name: e.target.value }))} placeholder="Full name" /></Field>
+            <Field label="Designation"><input className={textInputClass()} value={profileForm.designation} onChange={(e) => setProfileForm((s) => ({ ...s, designation: e.target.value }))} placeholder="e.g. Professor" /></Field>
+            <Field label="Department"><input className={textInputClass()} value={profileForm.department} onChange={(e) => setProfileForm((s) => ({ ...s, department: e.target.value }))} placeholder="e.g. Computer Engineering" /></Field>
+            <Field label="Email"><input className={textInputClass()} value={profileForm.email} onChange={(e) => setProfileForm((s) => ({ ...s, email: e.target.value }))} placeholder="Email address" /></Field>
+            <Field label="Phone"><input className={textInputClass()} value={profileForm.phone} onChange={(e) => setProfileForm((s) => ({ ...s, phone: e.target.value }))} placeholder="Phone number" /></Field>
+            <Field label="Photo URL"><input className={textInputClass()} value={profileForm.photo_url} onChange={(e) => setProfileForm((s) => ({ ...s, photo_url: e.target.value }))} placeholder="https://..." /></Field>
+            <Field label="Resume URL"><input className={textInputClass()} value={profileForm.cv_url} onChange={(e) => setProfileForm((s) => ({ ...s, cv_url: e.target.value }))} placeholder="PDF or Doc link" /></Field>
+            <Field label="LinkedIn"><input className={textInputClass()} value={profileForm.linkedin_url} onChange={(e) => setProfileForm((s) => ({ ...s, linkedin_url: e.target.value }))} placeholder="LinkedIn profile URL" /></Field>
+            <Field label="GitHub"><input className={textInputClass()} value={profileForm.github_url} onChange={(e) => setProfileForm((s) => ({ ...s, github_url: e.target.value }))} placeholder="GitHub profile URL" /></Field>
+            <Field label="Google Scholar"><input className={textInputClass()} value={profileForm.google_scholar_url} onChange={(e) => setProfileForm((s) => ({ ...s, google_scholar_url: e.target.value }))} placeholder="Scholar profile URL" /></Field>
+            <Field label="Website"><input className={textInputClass()} value={profileForm.website_url} onChange={(e) => setProfileForm((s) => ({ ...s, website_url: e.target.value }))} placeholder="Personal website URL" /></Field>
+            <Field label="Teaching Experience (yrs)"><input className={textInputClass()} type="number" value={profileForm.experience_teaching} onChange={(e) => setProfileForm((s) => ({ ...s, experience_teaching: Number(e.target.value) }))} /></Field>
+            <Field label="Industry Experience (yrs)"><input className={textInputClass()} type="number" value={profileForm.experience_industry} onChange={(e) => setProfileForm((s) => ({ ...s, experience_industry: Number(e.target.value) }))} /></Field>
+            <div className="md:col-span-2"><Field label="Research Interests"><textarea className={`${textInputClass()} resize-none`} rows={2} value={profileForm.research_area} onChange={(e) => setProfileForm((s) => ({ ...s, research_area: e.target.value }))} placeholder="Research areas and interests" /></Field></div>
+            <div className="md:col-span-2"><Field label="Biosketch"><textarea className={`${textInputClass()} resize-none`} rows={3} value={profileForm.bio} onChange={(e) => setProfileForm((s) => ({ ...s, bio: e.target.value }))} placeholder="Brief biography" /></Field></div>
+            <button onClick={onBasicSave} disabled={busy} className="rounded-lg bg-[#9d2235] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#b51a34] disabled:opacity-50 md:col-span-2">
+              {busy ? "Saving..." : "Save Profile Changes"}
             </button>
           </div>
         </section>

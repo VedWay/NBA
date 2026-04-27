@@ -1,52 +1,53 @@
-@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: "Manrope", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  --campus-navy: #9d2235;
-  --campus-navy-soft: #ae152d;
-  --campus-navy-deep: #7f1022;
-  --campus-gold: #9d2235;
-  --campus-gold-soft: #c3475b;
-  --campus-maroon: #9d2235;
-  --campus-ink: #32242a;
-  --campus-link: #9d2235;
-  --campus-paper: #fff7f8;
-  --glass-bg: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(255, 245, 247, 0.9));
-  --glass-border: rgba(157, 34, 53, 0.16);
-  --glass-shadow: 0 16px 34px rgba(127, 16, 34, 0.12);
-  --gold-strong: var(--campus-gold);
-  --gold-soft: var(--campus-gold-soft);
+  /* Brand colors */
+  --campus-red:        #9d2235;
+  --campus-red-soft:   #ae152d;
+  --campus-red-deep:   #7f1022;
+  --campus-gold:       #d4a017;
+  --campus-gold-light: #f0c040;
+  --campus-ink:        #1e1a1b;
+  --campus-ink-soft:   #3d3237;
+  --campus-link:       #9d2235;
+  --campus-paper:      #fafafa;
+
+  /* legacy aliases kept for existing components */
+  --campus-navy:       var(--campus-red);
+  --campus-navy-soft:  var(--campus-red-soft);
+  --campus-navy-deep:  var(--campus-red-deep);
+  --campus-gold-soft:  var(--campus-gold-light);
+  --campus-maroon:     var(--campus-red);
+  --gold-strong:       var(--campus-gold);
+  --gold-soft:         var(--campus-gold-light);
+
+  --glass-bg:     linear-gradient(150deg, rgba(255,255,255,0.96), rgba(255,245,247,0.9));
+  --glass-border: rgba(157,34,53,0.16);
+  --glass-shadow: 0 16px 34px rgba(127,16,34,0.12);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html,
-body,
-#root {
+html, body, #root {
   margin: 0;
   min-height: 100%;
 }
 
 body {
+  font-family: "Inter", "Manrope", "Segoe UI", sans-serif;
   color: var(--campus-ink);
-  background: #f6f6f6;
-  background-attachment: fixed;
-  line-height: 1.5;
+  background: #f5f5f5;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
-h1,
-h2,
-h3,
-h4 {
-  font-family: "Manrope", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: var(--campus-navy-deep);
+h1, h2, h3, h4 {
+  font-family: "Playfair Display", Georgia, serif;
+  color: var(--campus-red-deep);
   letter-spacing: 0.01em;
+  line-height: 1.2;
 }
 
 a,
@@ -300,92 +301,21 @@ button:active,
 }
 
 @layer utilities {
-  .bg-amber-50 {
-    background-color: rgba(157, 34, 53, 0.1) !important;
+  /* ─── Hero wave bottom clip ─── */
+  .hero-wave {
+    clip-path: ellipse(100% 92% at 50% 0%);
   }
 
-  .bg-amber-100 {
-    background-color: rgba(157, 34, 53, 0.18) !important;
+  /* ─── Gold accent text ─── */
+  .text-gold {
+    color: var(--campus-gold) !important;
+  }
+  .text-gold-light {
+    color: var(--campus-gold-light) !important;
   }
 
-  .bg-amber-200,
-  .bg-amber-200\/60 {
-    background-color: rgba(157, 34, 53, 0.26) !important;
-  }
-
-  .bg-amber-300,
-  .hover\:bg-amber-300:hover {
-    background-color: #ae152d !important;
-    color: #fff !important;
-  }
-
-  .bg-amber-400,
-  .hover\:bg-amber-400:hover {
-    background-color: var(--campus-gold) !important;
-    color: #fff !important;
-  }
-
-  .bg-amber-500,
-  .hover\:bg-amber-500:hover {
-    background-color: #7f1022 !important;
-    color: #fff !important;
-  }
-
-  .border-amber-200,
-  .border-amber-300,
-  .border-amber-400,
-  .border-amber-500,
-  .ring-amber-300 {
-    border-color: rgba(157, 34, 53, 0.4) !important;
-    --tw-ring-color: rgba(157, 34, 53, 0.4) !important;
-  }
-
-  .text-amber-700,
-  .text-amber-800 {
-    color: #7f1022 !important;
-  }
-
-  .text-blue-700,
-  .hover\:text-blue-700:hover,
-  .text-blue-500,
-  .hover\:text-blue-500:hover,
-  .border-blue-700,
-  .border-blue-200,
-  .border-blue-500,
-  .focus\:border-blue-700:focus,
-  .focus\:border-blue-500:focus {
-    color: var(--campus-link) !important;
-    border-color: var(--campus-link) !important;
-  }
-
-  .bg-blue-50 {
-    background-color: rgba(157, 34, 53, 0.08) !important;
-  }
-
-  .bg-blue-100 {
-    background-color: rgba(157, 34, 53, 0.14) !important;
-  }
-
-  .bg-blue-500,
-  .hover\:bg-blue-500:hover {
-    background-color: var(--campus-navy-soft) !important;
-    color: #fff !important;
-  }
-
-  .bg-blue-600,
-  .hover\:bg-blue-600:hover,
-  .hover\:bg-blue-700:hover {
-    background-color: var(--campus-navy) !important;
-    color: #fff !important;
-  }
-
-  .from-blue-600 {
-    --tw-gradient-from: var(--campus-navy) var(--tw-gradient-from-position) !important;
-    --tw-gradient-to: rgba(157, 34, 53, 0) var(--tw-gradient-to-position) !important;
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
-  }
-
-  .to-blue-500 {
-    --tw-gradient-to: var(--campus-navy-soft) var(--tw-gradient-to-position) !important;
+  /* ─── Serif heading helper ─── */
+  .font-display {
+    font-family: "Playfair Display", Georgia, serif;
   }
 }

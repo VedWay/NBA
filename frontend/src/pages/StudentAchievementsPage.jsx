@@ -195,23 +195,7 @@ const StudentAchievementsPage = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="footer">
-        <div className="container footer__inner">
-          <div className="footer__brand">
-            <span className="footer__logo">VJTI</span>
-            <p>Veermata Jijabai Technological Institute, Mumbai</p>
-          </div>
-          <div className="footer__links">
-            <a href="https://vjti.ac.in" target="_blank" rel="noreferrer">Official Website</a>
-            <span>|</span>
-            <a href="#">Contact Dean</a>
-            <span>|</span>
-            <a href="#">Guidelines</a>
-          </div>
-          <p className="footer__copy">© 2025 VJTI Mumbai. All rights reserved.</p>
-        </div>
-      </footer>
+      {/* Footer removed - using global Footer from AppLayout */}
     </div>
   );
 };

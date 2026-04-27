@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { facultyApi, notificationApi } from "../api/facultyApi";
 import { useEffect, useRef, useState } from "react";
-import Toast from "../components/Toast";
+import Footer from "../components/Footer";
 import { WS_BASE_URL } from "../api/client";
 import vjtiLogoEnglish from "../assets/vjti-logo-english.png";
 import vjtiLogoMarathi from "../assets/logo-light.gif";
@@ -25,7 +25,6 @@ export default function AppLayout() {
   const [openNotifications, setOpenNotifications] = useState(false);
   const [openProfileMenu, setOpenProfileMenu] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState("all");
-  const [toasts, setToasts] = useState([]);
   const [cachedNotifications, setCachedNotifications] = useState([]);
   const [showEnglishLogo, setShowEnglishLogo] = useState(true);
 
@@ -35,11 +34,11 @@ export default function AppLayout() {
 
   const routeNavItems = [
     { label: "Home", to: "/" },
-    { label: "Faculty", to: "/viewer" },
+    { label: "Faculty", to: "/faculty" },
     { label: "Students", to: "/students" },
     ...(isAuthenticated && role === "faculty" ? [{ label: "Dashboard", to: "/dashboard" }] : []),
-    ...(isAuthenticated && (role === "faculty" || role === "admin") ? [{ label: "Submit Achievement", to: "/student-desk" }] : []),
-    ...(isAuthenticated && role === "admin" ? [{ label: "Requests", to: "/admin" }] : []),
+    ...(isAuthenticated && role === "student" ? [{ label: "My Desk", to: "/student-desk" }] : []),
+    ...(isAuthenticated && role === "admin" ? [{ label: "Admin", to: "/admin" }] : []),
   ];
 
   const { data: facultyList = [] } = useQuery({
@@ -130,33 +129,8 @@ export default function AppLayout() {
   });
 
   useEffect(() => {
-    if (previousNotificationsRef.current === null) {
-      previousNotificationsRef.current = notifications;
-      return;
-    }
-
-    const newNotifications = notifications.filter(
-      (n) => !previousNotificationsRef.current.find((prev) => prev.id === n.id)
-    );
-
-    newNotifications.forEach((notification) => {
-      const toastId = Math.random();
-      setToasts((prev) => [
-        ...prev,
-        {
-          id: toastId,
-          title: notification.title,
-          message: notification.message,
-        },
-      ]);
-    });
-
     previousNotificationsRef.current = notifications;
   }, [notifications]);
-
-  const removeToast = (id) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  };
 
   useEffect(() => {
     if (!canUseNotifications || !token) {
@@ -288,35 +262,29 @@ export default function AppLayout() {
 
   return (
     <div className="liquid-skin min-h-screen text-slate-900">
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          id={toast.id}
-          title={toast.title}
-          message={toast.message}
-          onClose={removeToast}
-          duration={5000}
-        />
-      ))}
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-0 md:px-8">
 
-      <header className="campus-header-shell sticky top-0 z-40 border-b border-slate-300 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-8">
-          <Link to="/" className="flex min-w-0 items-center">
+          {/* Logo */}
+          <Link to="/" className="flex shrink-0 items-center py-2">
             <img
               src={showEnglishLogo ? vjtiLogoEnglish : vjtiLogoMarathi}
-              alt={showEnglishLogo ? "VJTI English Logo" : "VJTI Marathi Logo"}
-              className="h-12 w-auto md:h-14"
+              alt="VJTI"
+              className="h-11 w-auto md:h-13"
             />
           </Link>
 
-          <nav className="hidden items-center gap-2 md:flex">
+          {/* Center nav */}
+          <nav className="hidden items-center gap-0.5 md:flex">
             {routeNavItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `rounded-md px-3 py-2 text-sm font-semibold transition ${
-                    isActive ? "bg-[#9d2235] text-white shadow-sm" : "text-slate-700 hover:bg-slate-100"
+                  `rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
+                    isActive
+                      ? "bg-[#9d2235] text-white"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                   }`
                 }
               >
@@ -325,136 +293,100 @@ export default function AppLayout() {
             ))}
           </nav>
 
-          <div className="hidden items-center gap-3 text-sm md:flex">
+          {/* Right controls */}
+          <div className="hidden items-center gap-2 md:flex">
+
+            {/* Notifications bell */}
             {canUseNotifications && (
               <div className="relative">
                 <button
-                  onClick={() => {
-                    setOpenNotifications((v) => {
-                      const next = !v;
-                      if (next) {
-                        refetchNotifications();
-                      }
-                      return next;
-                    });
-                  }}
-                  className="liquid-control rounded-md px-3 py-2 text-xs font-semibold text-slate-800"
+                  onClick={() => { setOpenNotifications((v) => { if (!v) refetchNotifications(); return !v; }); }}
+                  className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100"
+                  title="Notifications"
                 >
-                  Notifications {unreadCount ? `(${unreadCount})` : ""}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  {unreadCount > 0 && (
+                    <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#9d2235] px-1 text-[9px] font-extrabold text-white leading-none">{unreadCount}</span>
+                  )}
                 </button>
-                {openNotifications &&
-                  renderNotificationsPanel("liquid-glass absolute right-0 z-20 mt-2 w-80 rounded-xl p-3")}
+                {openNotifications && renderNotificationsPanel("liquid-glass absolute right-0 top-full z-20 mt-2 w-80 rounded-xl p-3")}
               </div>
             )}
 
+            {/* Profile dropdown — faculty */}
             {canUseProfileMenu && role === "faculty" && ownFaculty && (
               <div className="relative">
                 <button
                   onClick={() => setOpenProfileMenu((v) => !v)}
-                  className="liquid-control flex items-center gap-2 rounded-full px-2 py-1 hover:bg-slate-50"
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 transition hover:bg-slate-50"
                 >
                   <img
                     src={ownFaculty.photo_url || "https://via.placeholder.com/40x40?text=F"}
                     alt={ownFaculty.name || "Profile"}
-                    className="h-8 w-8 rounded-full object-cover"
+                    className="h-7 w-7 rounded-full object-cover"
                   />
-                  <span className="max-w-40 truncate text-xs font-semibold text-slate-800">{ownFaculty.name}</span>
+                  <span className="max-w-32 truncate text-xs font-semibold text-slate-700">{ownFaculty.name}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
-
                 {openProfileMenu && (
-                  <div className="liquid-glass absolute right-0 z-20 mt-2 w-52 rounded-xl p-2">
-                    <Link
-                      to={`/faculty/${ownFaculty.id}`}
-                      onClick={() => setOpenProfileMenu(false)}
-                      className="liquid-control block rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                    >
-                      My Profile
-                    </Link>
+                  <div className="absolute right-0 top-full z-20 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+                    <Link to={`/faculty/${ownFaculty.id}`} onClick={() => setOpenProfileMenu(false)}
+                      className="block rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">My Profile</Link>
+                    <button onClick={() => { setOpenProfileMenu(false); logout(); }}
+                      className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-50">Sign Out</button>
                   </div>
                 )}
               </div>
             )}
 
-            {canUseProfileMenu && role === "admin" && (
-              <div className="relative">
-                <button
-                  onClick={() => setOpenProfileMenu((v) => !v)}
-                  className="liquid-control flex items-center gap-2 rounded-full px-2 py-1 hover:bg-slate-50"
-                >
-                  <img src={adminPhoto} alt="Admin" className="h-8 w-8 rounded-full object-cover" />
-                  <span className="max-w-40 truncate text-xs font-semibold text-slate-800">{adminName}</span>
-                </button>
 
-                {openProfileMenu && (
-                  <div className="liquid-glass absolute right-0 z-20 mt-2 w-56 rounded-xl p-2">
-                    <Link
-                      to="/admin"
-                      onClick={() => setOpenProfileMenu(false)}
-                      className="liquid-control block rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                    >
-                      Approval Requests
-                    </Link>
-                    <Link
-                      to="/admin/history"
-                      onClick={() => setOpenProfileMenu(false)}
-                      className="liquid-control block rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                    >
-                      Past Approvals
-                    </Link>
-                    <Link
-                      to="/admin/faculty"
-                      onClick={() => setOpenProfileMenu(false)}
-                      className="liquid-control block rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                    >
-                      Faculty Directory
-                    </Link>
-                    <Link
-                      to="/admin/query"
-                      onClick={() => setOpenProfileMenu(false)}
-                      className="liquid-control block rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                    >
-                      Query Search
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <span className="liquid-chip rounded-full px-3 py-1 font-semibold">
+            {/* Role badge */}
+            <span className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
               {isAuthenticated ? String(role || "").toUpperCase() : "GUEST"}
             </span>
 
+            {/* Login / Logout */}
             {isAuthenticated ? (
-              <button className="liquid-control rounded-xl px-3 py-2 hover:bg-slate-100" onClick={logout}>
+              <button
+                onClick={logout}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+              >
                 Logout
               </button>
             ) : (
-              <Link to="/login" className="liquid-button rounded-xl px-3 py-2 font-semibold">
+              <Link
+                to="/login"
+                className="rounded-lg bg-[#9d2235] px-5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#b51a34]"
+              >
                 Login
               </Link>
             )}
           </div>
 
+          {/* Mobile hamburger */}
           <button
             type="button"
-            onClick={() => setMobileNavOpen((value) => !value)}
-            className="liquid-control rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide md:hidden"
+            onClick={() => setMobileNavOpen((v) => !v)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-100 md:hidden"
           >
-            {mobileNavOpen ? "Close" : "Menu"}
+            {mobileNavOpen
+              ? <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              : <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            }
           </button>
         </div>
 
         {mobileNavOpen && (
-          <div className="border-t border-slate-200 bg-white px-4 py-3 md:hidden">
-            <nav className="grid grid-cols-2 gap-2">
+          <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
+            <nav className="space-y-1">
               {routeNavItems.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   onClick={() => setMobileNavOpen(false)}
                   className={({ isActive }) =>
-                    `rounded-lg px-3 py-2 text-center text-sm font-semibold transition ${
-                      isActive ? "bg-[#9d2235] text-white shadow-sm" : "liquid-control text-slate-700"
+                    `block rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                      isActive ? "bg-[#9d2235] text-white" : "text-slate-700 hover:bg-slate-100"
                     }`
                   }
                 >
@@ -462,54 +394,38 @@ export default function AppLayout() {
                 </NavLink>
               ))}
             </nav>
-
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="liquid-chip rounded-full px-3 py-1 text-xs font-semibold">
-                  {isAuthenticated ? String(role || "").toUpperCase() : "GUEST"}
-                </span>
-
-                {isAuthenticated ? (
-                  <button
-                    className="liquid-control rounded-lg px-3 py-2 text-sm"
-                    onClick={() => {
-                      setMobileNavOpen(false);
-                      logout();
-                    }}
-                  >
-                    Logout
-                  </button>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="liquid-button rounded-lg px-3 py-2 text-sm font-semibold"
-                    onClick={() => setMobileNavOpen(false)}
-                  >
-                    Login
-                  </Link>
-                )}
-              </div>
-
-              {canUseNotifications && (
-                <div>
-                  <button
-                    onClick={() => {
-                      setOpenNotifications((value) => {
-                        const next = !value;
-                        if (next) {
-                          refetchNotifications();
-                        }
-                        return next;
-                      });
-                    }}
-                    className="liquid-control w-full rounded-lg px-3 py-2 text-left text-xs font-semibold"
-                  >
-                    Notifications {unreadCount ? `(${unreadCount})` : ""}
-                  </button>
-                  {openNotifications && renderNotificationsPanel("liquid-panel mt-2 rounded-xl p-3")}
-                </div>
+            <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
+              <span className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-center text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+                {isAuthenticated ? String(role || "").toUpperCase() : "GUEST"}
+              </span>
+              {isAuthenticated ? (
+                <button
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 transition hover:bg-rose-50 hover:text-rose-700"
+                  onClick={() => { setMobileNavOpen(false); logout(); }}
+                >
+                  Logout
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="rounded-lg bg-[#9d2235] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#b51a34]"
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  Login
+                </Link>
               )}
             </div>
+            {canUseNotifications && (
+              <div className="mt-3">
+                <button
+                  onClick={() => { setOpenNotifications((v) => { if (!v) refetchNotifications(); return !v; }); }}
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Notifications {unreadCount > 0 ? `(${unreadCount})` : ""}
+                </button>
+                {openNotifications && renderNotificationsPanel("mt-2 rounded-xl border border-slate-200 bg-white p-3 shadow")}
+              </div>
+            )}
           </div>
         )}
       </header>
@@ -517,6 +433,8 @@ export default function AppLayout() {
       <main className="campus-page-main min-h-[calc(100vh-6rem)]">
         <Outlet />
       </main>
+
+      <Footer />
     </div>
   );
 }

@@ -2,6 +2,22 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { achievementApi, facultyApi } from "../api/facultyApi";
+import {
+  BookOpen,
+  Users,
+  GraduationCap,
+  Award,
+  FlaskConical,
+  TrendingUp,
+  ChevronRight,
+  ArrowRight,
+  Play,
+  FileText,
+  ExternalLink,
+  Star,
+  Building2,
+  Calendar,
+} from "lucide-react";
 
 function normalizePublicationType(type) {
   const raw = String(type || "journal").trim();
@@ -62,7 +78,7 @@ function AchievementMedia({ item }) {
     return (
       <div className="flex h-52 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50">
         <a href={item.media_url} target="_blank" rel="noreferrer" className="liquid-button rounded-lg px-4 py-2 text-sm font-semibold text-white">
-          Open PDF
+          <FileText className="mr-2 inline h-4 w-4" /> Open PDF
         </a>
       </div>
     );
@@ -71,9 +87,42 @@ function AchievementMedia({ item }) {
   return (
     <div className="flex h-52 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50">
       <a href={item.media_url} target="_blank" rel="noreferrer" className="liquid-control rounded-lg px-4 py-2 text-sm font-semibold text-slate-900">
-        Open Link
+        <ExternalLink className="mr-2 inline h-4 w-4" /> Open Link
       </a>
     </div>
+  );
+}
+
+function StatCard({ icon: Icon, value, label, color }) {
+  return (
+    <div className="flex items-center gap-4 rounded-2xl border border-white/20 bg-white/10 px-5 py-4 backdrop-blur-sm">
+      <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${color}`}>
+        <Icon className="h-6 w-6 text-white" />
+      </div>
+      <div>
+        <p className="text-2xl font-extrabold text-white">{value}</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-white/70">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function QuickLinkCard({ to, icon: Icon, title, description, color }) {
+  return (
+    <Link
+      to={to}
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(127,16,34,0.15)]"
+    >
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#9d2235] to-[#c3475b] opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl ${color}`}>
+        <Icon className="h-6 w-6" />
+      </div>
+      <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+      <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-500">{description}</p>
+      <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[#9d2235] opacity-0 transition-opacity group-hover:opacity-100">
+        Explore <ChevronRight className="h-4 w-4" />
+      </div>
+    </Link>
   );
 }
 
@@ -141,6 +190,8 @@ export default function LandingPage() {
       return {
         publications: sortByNewest(publications).slice(0, 32),
         awards: sortByNewest(awards).slice(0, 32),
+        facultyCount: visibleFaculty.length,
+        departmentCount: new Set(visibleFaculty.map((f) => f.department).filter(Boolean)).size,
       };
     },
   });
@@ -158,17 +209,16 @@ export default function LandingPage() {
 
   const featured = filteredAchievements[0];
   const remaining = filteredAchievements.slice(1);
-  const publishedCount = achievements.length;
-  const imageCount = achievements.filter((item) => item.media_type === "image").length;
-  const videoCount = achievements.filter((item) => item.media_type === "youtube").length;
   const publications = facultyHighlights?.publications || [];
   const awards = facultyHighlights?.awards || [];
+  const facultyCount = facultyHighlights?.facultyCount || 0;
+  const departmentCount = facultyHighlights?.departmentCount || 0;
 
   useEffect(() => {
     if (publications.length <= 1) return undefined;
     const intervalId = window.setInterval(() => {
       setActivePublication((current) => (current + 1) % publications.length);
-    }, 2200);
+    }, 3500);
     return () => window.clearInterval(intervalId);
   }, [publications.length]);
 
@@ -176,7 +226,7 @@ export default function LandingPage() {
     if (awards.length <= 1) return undefined;
     const intervalId = window.setInterval(() => {
       setActiveAward((current) => (current + 1) % awards.length);
-    }, 2300);
+    }, 4000);
     return () => window.clearInterval(intervalId);
   }, [awards.length]);
 
@@ -198,120 +248,236 @@ export default function LandingPage() {
   }, [publications.length, awards.length]);
 
   return (
-    <div className="smooth-fade pb-14">
-      <section className="relative min-h-[62vh] overflow-hidden md:min-h-[68vh]">
+    <div className="smooth-fade">
+      {/* Hero Section */}
+      <section className="relative min-h-[70vh] overflow-hidden md:min-h-[78vh]">
         <img
           src="/hero.png"
-          alt="NBA Faculty Information System"
+          alt="VJTI Campus"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="vjti-hero-overlay absolute inset-0" />
-        
-      </section>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1a0a0e]/90 via-[#3d0f1a]/80 to-[#1a0a0e]/70" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1a0a0e]/60 to-transparent" />
 
-      <section className="px-4 py-10 md:px-10">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8 grid gap-4 md:grid-cols-3">
-            <article className="glass-card rounded-2xl p-5">
-              <p className="campus-kicker">Directory</p>
-              <h3 className="mt-2 text-xl font-bold">Faculty Profiles</h3>
-              <p className="mt-2 text-sm campus-muted">Explore approved records by department, designation, and research focus.</p>
-            </article>
-            <article className="glass-card rounded-2xl p-5">
-              <p className="campus-kicker">Review</p>
-              <h3 className="mt-2 text-xl font-bold">Admin Workflow</h3>
-              <p className="mt-2 text-sm campus-muted">Transparent approvals and history tracking for all submitted records.</p>
-            </article>
-            <article className="glass-card rounded-2xl p-5">
-              <p className="campus-kicker">Reporting</p>
-              <h3 className="mt-2 text-xl font-bold">NBA Reports</h3>
-              <p className="mt-2 text-sm campus-muted">Generate formatted outputs aligned with accreditation evidence needs.</p>
-            </article>
+        <div className="relative mx-auto flex min-h-[70vh] max-w-7xl flex-col justify-center px-6 py-20 md:min-h-[78vh] md:px-10">
+          <div className="max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 backdrop-blur-sm">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+              <span className="text-xs font-semibold uppercase tracking-widest text-white/90">
+                NBA Accreditation Portal
+              </span>
+            </div>
+            <h1 className="font-display text-4xl font-extrabold leading-tight text-white md:text-6xl lg:text-7xl">
+              Veermata Jijabai<br />
+              Technological<br />
+              <em className="not-italic" style={{ color: "#d4a017" }}>Institute</em>
+            </h1>
+            <p className="mt-5 max-w-xl font-sans text-base leading-relaxed text-white/70 md:text-lg">
+              Centralized platform for faculty data management, student achievements tracking, research publications, and NBA accreditation documentation.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link
+                to="/viewer"
+                className="group flex items-center gap-2 rounded-xl bg-[#9d2235] px-6 py-3 text-sm font-bold text-white shadow-[0_10px_30px_rgba(157,34,53,0.4)] transition hover:bg-[#b51a34] hover:shadow-[0_14px_36px_rgba(157,34,53,0.5)]"
+              >
+                Faculty Directory <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link
+                to="/students"
+                className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/20"
+              >
+                Student Achievements
+              </Link>
+              <Link
+                to="/login"
+                className="flex items-center gap-2 rounded-xl border border-white/20 px-6 py-3 text-sm font-semibold text-white/80 transition hover:border-white/40 hover:text-white"
+              >
+                Login / Register
+              </Link>
+            </div>
           </div>
 
-          <div className="mb-10 grid gap-4 lg:grid-cols-2">
-            <article className="rounded-xl border border-[#edcab3] bg-[#f9f6f3] p-5">
-              <h3 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">Latest Research Publications</h3>
-              <div className="mt-4 h-1 w-28 rounded bg-[#b51a34]" />
+          {/* Stats Row */}
+          <div className="mt-12 grid grid-cols-2 gap-3 md:grid-cols-4 lg:max-w-3xl">
+            <StatCard icon={Users} value={facultyCount || "—"} label="Faculty" color="bg-[#9d2235]" />
+            <StatCard icon={Building2} value={departmentCount || "—"} label="Departments" color="bg-[#7f1022]" />
+            <StatCard icon={BookOpen} value={publications.length || "—"} label="Publications" color="bg-[#b51a34]" />
+            <StatCard icon={Award} value={awards.length || "—"} label="Awards" color="bg-[#c3475b]" />
+          </div>
+        </div>
+      </section>
 
-              {isHighlightsLoading && <p className="mt-6 text-sm text-slate-600">Loading publication highlights...</p>}
+      {/* Quick Links Section */}
+      <section className="relative -mt-8 z-10 px-4 md:px-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <QuickLinkCard
+              to="/viewer"
+              icon={Users}
+              title="Faculty Directory"
+              description="Browse approved profiles by department, designation, and research focus."
+              color="bg-[#9d2235]/10 text-[#9d2235]"
+            />
+            <QuickLinkCard
+              to="/students"
+              icon={GraduationCap}
+              title="Student Achievements"
+              description="Internships, placements, and co-curricular achievements by students."
+              color="bg-emerald-100 text-emerald-700"
+            />
+            <QuickLinkCard
+              to="/student-desk"
+              icon={TrendingUp}
+              title="Submit Achievement"
+              description="Faculty and students can submit new records for admin review."
+              color="bg-blue-100 text-blue-700"
+            />
+            <QuickLinkCard
+              to="/login"
+              icon={FlaskConical}
+              title="Research & Reports"
+              description="Login to access NBA-formatted reports and research data exports."
+              color="bg-amber-100 text-amber-700"
+            />
+          </div>
+        </div>
+      </section>
 
-              {!isHighlightsLoading && !publications.length && (
-                <p className="mt-6 text-sm text-slate-600">No publication highlights available yet.</p>
-              )}
+      {/* Publications & Awards Section */}
+      <section className="px-4 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10 text-center">
+            <p className="campus-kicker">Research Highlights</p>
+            <h2 className="mt-3 font-display text-3xl font-bold text-slate-800 md:text-4xl">Publications & Recognition</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
+              Latest faculty research publications and awards curated from approved institutional records.
+            </p>
+          </div>
 
-              {!isHighlightsLoading && !!publications.length && (
-                <>
-                  <div className="mt-6 rounded-lg bg-white/70 p-4 shadow-sm transition duration-300">
-                    <p className="text-sm text-slate-600">Journal: {publications[activePublication]?.journal}</p>
-                    <p className="mt-2 text-sm text-slate-600">DOI: {publications[activePublication]?.doi || "-"}</p>
-                    <p className="mt-2 text-sm text-slate-600">Type: {publications[activePublication]?.type}</p>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Publications Card */}
+            <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 bg-gradient-to-r from-[#9d2235] to-[#b51a34] px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="h-5 w-5 text-white/80" />
+                  <h3 className="text-lg font-bold text-white">Latest Research Publications</h3>
+                </div>
+                <p className="mt-1 text-xs text-white/60">{publications.length} publications indexed</p>
+              </div>
+
+              <div className="p-5">
+                {isHighlightsLoading && (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+                    ))}
                   </div>
+                )}
 
-                  <div ref={publicationScrollRef} className="mt-4 max-h-[320px] space-y-3 overflow-y-auto pr-1">
+                {!isHighlightsLoading && !publications.length && (
+                  <p className="py-8 text-center text-sm text-slate-500">No publication highlights available yet.</p>
+                )}
+
+                {!isHighlightsLoading && !!publications.length && (
+                  <div ref={publicationScrollRef} className="max-h-[380px] space-y-3 overflow-y-auto pr-1">
                     {publications.map((item, index) => (
                       <article
                         key={item.id}
-                        className={`rounded-lg p-3 transition duration-300 ${
-                          index === activePublication ? "bg-[#b51a34]/10" : "bg-transparent"
+                        className={`rounded-xl border p-4 transition-all duration-300 ${
+                          index === activePublication
+                            ? "border-[#9d2235]/30 bg-[#9d2235]/5 shadow-sm"
+                            : "border-transparent bg-slate-50/50 hover:bg-slate-50"
                         }`}
                       >
-                        <p className="text-lg font-semibold leading-snug text-slate-700 md:text-xl">• {item.title}</p>
-                        <p className="mt-1 text-sm text-slate-600 md:text-base">Authors: {item.authors}</p>
-                        <p className="mt-1 text-sm text-slate-600 md:text-base">Journal: {item.journal}</p>
-                        <p className="mt-1 text-sm text-slate-600 md:text-base">DOI: {item.doi || "-"}</p>
-                        <p className="mt-1 text-sm text-slate-600 md:text-base">Type: {item.type}</p>
+                        <p className="text-sm font-bold leading-snug text-slate-800">{item.title}</p>
+                        <p className="mt-1 text-xs text-slate-500">{item.authors}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-[#9d2235]/10 px-2 py-0.5 text-[10px] font-semibold text-[#9d2235]">
+                            {item.type}
+                          </span>
+                          {item.year && (
+                            <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                              <Calendar className="h-3 w-3" /> {item.year}
+                            </span>
+                          )}
+                        </div>
                       </article>
                     ))}
                   </div>
-                </>
-              )}
+                )}
+              </div>
             </article>
 
-            <article className="rounded-xl border border-[#edcab3] bg-[#f9f6f3] p-5">
-              <h3 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">Awards and Recognition</h3>
-              <div className="mt-4 h-1 w-28 rounded bg-[#b51a34]" />
+            {/* Awards Card */}
+            <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <Star className="h-5 w-5 text-white/80" />
+                  <h3 className="text-lg font-bold text-white">Awards & Recognition</h3>
+                </div>
+                <p className="mt-1 text-xs text-white/60">{awards.length} awards documented</p>
+              </div>
 
-              {isHighlightsLoading && <p className="mt-6 text-sm text-slate-600">Loading awards highlights...</p>}
-
-              {!isHighlightsLoading && !awards.length && (
-                <p className="mt-6 text-sm text-slate-600">No awards highlights available yet.</p>
-              )}
-
-              {!isHighlightsLoading && !!awards.length && (
-                <>
-                  <div className="mt-6 rounded-lg bg-white/70 p-4 shadow-sm transition duration-300">
-                    <p className="text-2xl font-medium text-slate-900 md:text-3xl">{awards[activeAward]?.facultyName}</p>
-                    <p className="mt-1 text-base text-slate-600 md:text-lg">{awards[activeAward]?.department}</p>
+              <div className="p-5">
+                {isHighlightsLoading && (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+                    ))}
                   </div>
+                )}
 
-                  <div ref={awardScrollRef} className="mt-4 max-h-[320px] space-y-3 overflow-y-auto pr-1">
+                {!isHighlightsLoading && !awards.length && (
+                  <p className="py-8 text-center text-sm text-slate-500">No awards highlights available yet.</p>
+                )}
+
+                {!isHighlightsLoading && !!awards.length && (
+                  <div ref={awardScrollRef} className="max-h-[380px] space-y-3 overflow-y-auto pr-1">
                     {awards.map((item, index) => (
                       <article
                         key={item.id}
-                        className={`rounded-lg p-3 transition duration-300 ${
-                          index === activeAward ? "bg-[#b51a34]/10" : "bg-transparent"
+                        className={`rounded-xl border p-4 transition-all duration-300 ${
+                          index === activeAward
+                            ? "border-amber-300/50 bg-amber-50 shadow-sm"
+                            : "border-transparent bg-slate-50/50 hover:bg-slate-50"
                         }`}
                       >
-                        <p className="text-lg font-semibold leading-snug text-slate-700 md:text-xl">• {item.title}</p>
-                        <p className="mt-1 text-sm leading-relaxed text-slate-600 md:text-base">{item.description}</p>
-                        <p className="mt-1 text-sm italic text-slate-500 md:text-base">Awarded in {item.year || "-"}</p>
+                        <p className="text-sm font-bold leading-snug text-slate-800">{item.title}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500">{item.description}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs font-semibold text-amber-700">{item.facultyName}</span>
+                          {item.year && (
+                            <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                              <Calendar className="h-3 w-3" /> {item.year}
+                            </span>
+                          )}
+                        </div>
                       </article>
                     ))}
                   </div>
-                </>
-              )}
+                )}
+              </div>
             </article>
           </div>
+        </div>
+      </section>
 
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      {/* Achievements Showcase */}
+      <section className="bg-slate-50 px-4 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="campus-kicker">Public Showcase</p>
-              <h2 className="mt-2 text-3xl font-bold md:text-4xl">Faculty Achievements</h2>
-              <p className="mt-1 text-sm campus-muted">Verified and published by the administration.</p>
+              <h2 className="mt-2 font-display text-3xl font-bold text-slate-800 md:text-4xl">Faculty Achievements</h2>
+              <p className="mt-2 max-w-xl text-sm text-slate-500">
+                Verified and published achievements by the administration.
+              </p>
             </div>
-            <Link to="/faculty" className="liquid-control rounded-lg px-4 py-2 text-sm font-semibold text-slate-800">
-              Explore Faculty
+            <Link
+              to="/faculty"
+              className="group flex items-center gap-2 rounded-lg border border-[#9d2235]/30 bg-white px-4 py-2.5 text-sm font-semibold text-[#9d2235] shadow-sm transition hover:bg-[#9d2235] hover:text-white"
+            >
+              Explore All Faculty <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
 
@@ -319,17 +485,17 @@ export default function LandingPage() {
             {[
               ["all", "All"],
               ["image", "Images"],
-              ["youtube", "YouTube"],
-              ["pdf", "PDF"],
+              ["youtube", "Videos"],
+              ["pdf", "Documents"],
               ["link", "Links"],
             ].map(([value, label]) => (
               <button
                 key={value}
                 onClick={() => setFilter(value)}
-                className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
+                className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition ${
                   filter === value
-                    ? "bg-[#9d2235] text-white"
-                    : "liquid-control text-slate-700"
+                    ? "bg-[#9d2235] text-white shadow-md"
+                    : "border border-slate-200 bg-white text-slate-600 hover:border-[#9d2235]/30 hover:text-[#9d2235]"
                 }`}
               >
                 {label}
@@ -338,25 +504,28 @@ export default function LandingPage() {
           </div>
 
           {!filteredAchievements.length && (
-            <div className="glass-card rounded-2xl px-6 py-8 text-center text-slate-600">
-              No achievements published yet.
+            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
+              <Award className="mx-auto h-10 w-10 text-slate-300" />
+              <p className="mt-3 text-sm font-medium text-slate-500">No achievements published yet.</p>
             </div>
           )}
 
           {!!filteredAchievements.length && (
             <div className="space-y-6">
               {featured && (
-                <article className="glass-card rounded-2xl p-5 md:p-7">
-                  <div className="grid items-center gap-6 md:grid-cols-[1.1fr_1fr]">
-                    <div className="overflow-hidden rounded-xl border border-slate-200/80">
+                <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="grid items-center gap-0 md:grid-cols-[1.2fr_1fr]">
+                    <div className="overflow-hidden">
                       <AchievementMedia item={featured} />
                     </div>
-                    <div>
-                      <p className="campus-kicker">Featured Update</p>
-                      <h3 className="mt-2 text-2xl font-bold">{featured.title}</h3>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-600">{featured.summary || "No summary provided."}</p>
+                    <div className="p-6 md:p-8">
+                      <span className="inline-flex rounded-full bg-[#9d2235]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#9d2235]">
+                        Featured
+                      </span>
+                      <h3 className="mt-3 font-display text-2xl font-bold text-slate-800">{featured.title}</h3>
+                      <p className="mt-3 text-sm leading-relaxed text-slate-500">{featured.summary || "No summary provided."}</p>
                       {featured.faculty?.name && (
-                        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#9d2235]">
+                        <p className="mt-4 text-xs font-bold uppercase tracking-widest text-[#9d2235]">
                           {featured.faculty.name}
                         </p>
                       )}
@@ -368,23 +537,54 @@ export default function LandingPage() {
               {!!remaining.length && (
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {remaining.map((item) => (
-                    <article key={item.id} className="glass-card rounded-2xl p-4 transition hover:-translate-y-1 hover:shadow-[0_20px_32px_rgba(127,16,34,0.18)]">
-                      <div className="overflow-hidden rounded-lg border border-slate-200/80">
+                    <article
+                      key={item.id}
+                      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                    >
+                      <div className="overflow-hidden">
                         <AchievementMedia item={item} />
                       </div>
-                      <h3 className="mt-3 text-lg font-bold">{item.title}</h3>
-                      <p className="mt-1 text-sm text-slate-600">{item.summary || "No summary provided."}</p>
-                      {item.faculty?.name && (
-                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#9d2235]">
-                          {item.faculty.name}
-                        </p>
-                      )}
+                      <div className="p-5">
+                        <h3 className="text-base font-bold text-slate-800">{item.title}</h3>
+                        <p className="mt-1.5 line-clamp-2 text-sm text-slate-500">{item.summary || "No summary provided."}</p>
+                        {item.faculty?.name && (
+                          <p className="mt-3 text-[11px] font-bold uppercase tracking-widest text-[#9d2235]">
+                            {item.faculty.name}
+                          </p>
+                        )}
+                      </div>
                     </article>
                   ))}
                 </div>
               )}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="bg-gradient-to-br from-[#9d2235] via-[#7f1022] to-[#5a0b18] px-4 py-20 md:px-10">
+        <div className="mx-auto max-w-4xl text-center">
+          <h2 className="font-display text-3xl font-bold text-white md:text-4xl">
+            Ready to manage your academic profile?
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base text-white/70">
+            Faculty members can submit publications, projects, patents, and more. Admin approval ensures data integrity for NBA accreditation.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <Link
+              to="/login"
+              className="rounded-xl bg-white px-8 py-3 text-sm font-bold text-[#9d2235] shadow-lg transition hover:bg-slate-100"
+            >
+              Get Started
+            </Link>
+            <Link
+              to="/viewer"
+              className="rounded-xl border border-white/30 px-8 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+            >
+              Browse Faculty
+            </Link>
+          </div>
         </div>
       </section>
     </div>

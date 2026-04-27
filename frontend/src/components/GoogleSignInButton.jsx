@@ -2,8 +2,6 @@ import { useState } from "react";
 import { signInWithPopup, signOut, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "../utils/firebase";
 
-const googleProvider = new GoogleAuthProvider();
-
 export default function GoogleSignInButton({ onSignIn, disabled = false }) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -12,8 +10,19 @@ export default function GoogleSignInButton({ onSignIn, disabled = false }) {
     
     setIsLoading(true);
     try {
-      const authResult = await signInWithPopup(auth, googleProvider);
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ hd: "vjti.ac.in" });
+
+      const authResult = await signInWithPopup(auth, provider);
       const user = authResult.user;
+
+      // Safety check: reject emails not from vjti.ac.in org
+      const domain = (user.email || "").split("@")[1] || "";
+      if (domain !== "vjti.ac.in" && !domain.endsWith(".vjti.ac.in")) {
+        await signOut(auth);
+        onSignIn({ error: "Only VJTI organization accounts (@vjti.ac.in) are allowed." });
+        return;
+      }
       
       // Get the Firebase ID token
       const idToken = await user.getIdToken();
@@ -30,7 +39,6 @@ export default function GoogleSignInButton({ onSignIn, disabled = false }) {
       });
     } catch (error) {
       console.error("Google sign-in error:", error);
-      // Let parent handle the error
       onSignIn({ error: error.message });
     } finally {
       setIsLoading(false);

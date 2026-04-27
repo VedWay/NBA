@@ -91,11 +91,6 @@ export default function AdminPanel({ initialTab = "pending" }) {
     queryFn: () => adminApi.pending(token),
   });
 
-  const { data: auditData = [] } = useQuery({
-    queryKey: ["audit"],
-    queryFn: () => adminApi.audit(token, 80),
-  });
-
   const { data: historyData = [] } = useQuery({
     queryKey: ["approval-history"],
     queryFn: () => adminApi.history(token, 300),
@@ -385,55 +380,40 @@ export default function AdminPanel({ initialTab = "pending" }) {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl border border-amber-300/50 bg-gradient-to-r from-amber-50 to-white p-5 shadow-sm">
-        <h1 className="text-3xl font-black text-slate-800">Admin Request Center</h1>
-        <p className="mt-1 text-sm text-slate-600">Review requests, filter by faculty attributes and dates, and manage approvals quickly.</p>
-        <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded bg-white p-3 shadow-sm"><p className="text-xs text-slate-500">Pending Groups</p><p className="text-2xl font-bold text-slate-800">{filteredPendingGroups.length}</p></div>
-          <div className="rounded bg-white p-3 shadow-sm"><p className="text-xs text-slate-500">Approval History</p><p className="text-2xl font-bold text-slate-800">{filteredHistory.length}</p></div>
-          <div className="rounded bg-white p-3 shadow-sm"><p className="text-xs text-slate-500">Faculty Records</p><p className="text-2xl font-bold text-slate-800">{filteredFaculty.length}</p></div>
-          <div className="rounded bg-white p-3 shadow-sm"><p className="text-xs text-slate-500">Unread Notifications</p><p className="text-2xl font-bold text-slate-800">{(pendingData?.faculty || []).length}</p></div>
+      {message && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-amber-400" />
+          <p className="text-sm text-slate-700">{message}</p>
         </div>
-      </div>
-      {message && <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-slate-700">{message}</p>}
+      )}
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setActiveTab("pending")}
-          className={`rounded px-4 py-2 text-sm font-semibold ${activeTab === "pending" ? "bg-amber-400 text-slate-900" : "bg-white text-slate-700"}`}
-        >
-          Pending by Faculty
-        </button>
-        <button
-          onClick={() => setActiveTab("history")}
-          className={`rounded px-4 py-2 text-sm font-semibold ${activeTab === "history" ? "bg-amber-400 text-slate-900" : "bg-white text-slate-700"}`}
-        >
-          Past Approvals
-        </button>
-        <button
-          onClick={() => setActiveTab("faculty")}
-          className={`rounded px-4 py-2 text-sm font-semibold ${activeTab === "faculty" ? "bg-amber-400 text-slate-900" : "bg-white text-slate-700"}`}
-        >
-          Faculty Directory
-        </button>
-        <button
-          onClick={() => setActiveTab("achievements")}
-          className={`rounded px-4 py-2 text-sm font-semibold ${activeTab === "achievements" ? "bg-amber-400 text-slate-900" : "bg-white text-slate-700"}`}
-        >
-          Latest Achievements
-        </button>
+      <div className="flex flex-wrap gap-1.5">
+        {[
+          { key: "pending", label: "Pending" },
+          { key: "history", label: "Past Approvals" },
+          { key: "faculty", label: "Faculty Directory" },
+          { key: "achievements", label: "Achievements" },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${activeTab === tab.key ? "bg-[#9d2235] text-white shadow-sm" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      <section className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-lg font-semibold text-slate-800">Filters</h2>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-400">Filters</h2>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <select className="rounded border px-3 py-2" value={filters.designation} onChange={(e) => setFilters((s) => ({ ...s, designation: e.target.value }))}>
+          <select className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm focus:border-[#9d2235]/40 focus:outline-none" value={filters.designation} onChange={(e) => setFilters((s) => ({ ...s, designation: e.target.value }))}>
             {designationOptions.map((d) => <option key={d} value={d}>{d === "all" ? "All Designations" : d}</option>)}
           </select>
-          <select className="rounded border px-3 py-2" value={filters.department} onChange={(e) => setFilters((s) => ({ ...s, department: e.target.value }))}>
+          <select className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm focus:border-[#9d2235]/40 focus:outline-none" value={filters.department} onChange={(e) => setFilters((s) => ({ ...s, department: e.target.value }))}>
             {departmentOptions.map((d) => <option key={d} value={d}>{d === "all" ? "All Departments" : d}</option>)}
           </select>
-          <select className="rounded border px-3 py-2" value={filters.table} onChange={(e) => setFilters((s) => ({ ...s, table: e.target.value }))}>
+          <select className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm focus:border-[#9d2235]/40 focus:outline-none" value={filters.table} onChange={(e) => setFilters((s) => ({ ...s, table: e.target.value }))}>
             <option value="all">All Types</option>
             <option value="faculty">Faculty</option>
             <option value="publications">Publications</option>
@@ -443,29 +423,30 @@ export default function AdminPanel({ initialTab = "pending" }) {
             <option value="awards">Awards</option>
             <option value="miscellaneous_items">Miscellaneous</option>
           </select>
-          <select className="rounded border px-3 py-2" value={filters.status} onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))}>
+          <select className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm focus:border-[#9d2235]/40 focus:outline-none" value={filters.status} onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))}>
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
           </select>
-          <input type="date" className="rounded border px-3 py-2" value={filters.from} onChange={(e) => setFilters((s) => ({ ...s, from: e.target.value }))} />
-          <input type="date" className="rounded border px-3 py-2" value={filters.to} onChange={(e) => setFilters((s) => ({ ...s, to: e.target.value }))} />
+          <input type="date" className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm focus:border-[#9d2235]/40 focus:outline-none" value={filters.from} onChange={(e) => setFilters((s) => ({ ...s, from: e.target.value }))} />
+          <input type="date" className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm focus:border-[#9d2235]/40 focus:outline-none" value={filters.to} onChange={(e) => setFilters((s) => ({ ...s, to: e.target.value }))} />
         </div>
       </section>
 
       {activeTab === "pending" && (
         <section className="space-y-4">
           {!!filteredPendingEntries.length && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-semibold text-slate-400">{filteredPendingEntries.length} items</span>
               <button
-                className="rounded bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
                 disabled={actionBusy}
                 onClick={() => runBulkAction(filteredPendingEntries, "approve")}
               >
                 {bulkBusy ? "Processing..." : "Accept All Filtered"}
               </button>
               <button
-                className="rounded bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
+                className="rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-50"
                 disabled={actionBusy}
                 onClick={() => runBulkAction(filteredPendingEntries, "reject")}
               >
@@ -473,82 +454,86 @@ export default function AdminPanel({ initialTab = "pending" }) {
               </button>
             </div>
           )}
-          {!filteredPendingGroups.length && <p className="text-sm text-slate-500">No pending records for selected filters.</p>}
+          {!filteredPendingGroups.length && <p className="py-8 text-center text-sm text-slate-400">No pending records for selected filters.</p>}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {filteredPendingGroups.map((group) => {
               const f = group.faculty;
               return (
-                <article key={group.facultyKey} className="glass-card rounded-xl border border-amber-300/60 bg-white/80 p-4 shadow-sm">
-                  <div className="mb-3 flex items-center gap-3">
-                    <img
-                      src={f?.photo_url || adminBasePhoto}
-                      alt={f?.name || "Faculty"}
-                      className="h-14 w-14 rounded object-cover ring-2 ring-amber-300"
-                    />
-                    <div>
-                      <p className="text-lg font-bold text-slate-800">{f?.name || "Unknown Faculty"}</p>
-                      <p className="text-sm text-slate-600">{f?.designation || "No designation"}</p>
-                      <p className="text-xs text-slate-500">Pending: {group.entries.length}</p>
+                <article key={group.facultyKey} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={f?.photo_url || adminBasePhoto}
+                        alt={f?.name || "Faculty"}
+                        className="h-12 w-12 rounded-xl object-cover ring-2 ring-slate-100"
+                      />
+                      <div>
+                        <p className="font-bold text-slate-800">{f?.name || "Unknown Faculty"}</p>
+                        <p className="text-xs text-slate-500">{f?.designation || "—"} &middot; {group.entries.length} pending</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button
+                        className="rounded-md bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                        disabled={actionBusy}
+                        onClick={() => runBulkAction(group.entries.map(({ table, row }) => ({ table, id: row.id })), "approve")}
+                      >
+                        Accept All
+                      </button>
+                      <button
+                        className="rounded-md bg-rose-600 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
+                        disabled={actionBusy}
+                        onClick={() => runBulkAction(group.entries.map(({ table, row }) => ({ table, id: row.id })), "reject")}
+                      >
+                        Reject All
+                      </button>
                     </div>
                   </div>
 
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    <button
-                      className="rounded bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"
-                      disabled={actionBusy}
-                      onClick={() => runBulkAction(group.entries.map(({ table, row }) => ({ table, id: row.id })), "approve")}
-                    >
-                      Accept All
-                    </button>
-                    <button
-                      className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white"
-                      disabled={actionBusy}
-                      onClick={() => runBulkAction(group.entries.map(({ table, row }) => ({ table, id: row.id })), "reject")}
-                    >
-                      Reject All
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
+                  <div className="divide-y divide-slate-100 px-5">
                     {group.entries.map(({ table, row }) => (
                       <div
                         key={`${table}-${row.id}`}
-                        className="cursor-pointer rounded border border-slate-200 bg-slate-50 p-3 transition hover:border-amber-300 hover:bg-amber-50"
+                        className="cursor-pointer py-3 transition hover:bg-slate-50"
                         onClick={() => setSelectedRequest({ table, row, faculty: f || null })}
                       >
-                        <p className="text-xs font-semibold uppercase text-slate-500">{table}</p>
-                        <p className="text-sm text-slate-800">{labelForRow(row)}</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <button
-                            className="rounded bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"
-                            disabled={actionBusy}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              approveMutation.mutate({ table, id: row.id });
-                            }}
-                          >
-                            Approve
-                          </button>
-                          <button
-                            className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white"
-                            disabled={actionBusy}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openRejectDialog({ table, id: row.id });
-                            }}
-                          >
-                            Reject
-                          </button>
-                          <button
-                            className="rounded border border-slate-400 px-3 py-1 text-xs font-semibold text-slate-700"
-                            disabled={actionBusy}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              removeDetailMutation.mutate({ table, id: row.id });
-                            }}
-                          >
-                            Remove Detail
-                          </button>
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{table}</span>
+                            <p className="mt-1 text-sm font-semibold text-slate-800">{labelForRow(row)}</p>
+                          </div>
+                          <div className="flex shrink-0 gap-1.5">
+                            <button
+                              className="rounded-md bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                              disabled={actionBusy}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                approveMutation.mutate({ table, id: row.id });
+                              }}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              className="rounded-md bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
+                              disabled={actionBusy}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openRejectDialog({ table, id: row.id });
+                              }}
+                            >
+                              Reject
+                            </button>
+                            <button
+                              className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-50"
+                              disabled={actionBusy}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                removeDetailMutation.mutate({ table, id: row.id });
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -561,45 +546,54 @@ export default function AdminPanel({ initialTab = "pending" }) {
       )}
 
       {activeTab === "history" && (
-        <section className="rounded border border-slate-300 bg-white p-4">
-          <h2 className="mb-3 text-xl font-semibold text-slate-700">Past Approvals</h2>
-          <div className="space-y-2">
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-5 py-4">
+            <h2 className="text-lg font-bold text-slate-800">Past Approvals</h2>
+            <p className="text-xs text-slate-400">{filteredHistory.length} records</p>
+          </div>
+          <div className="divide-y divide-slate-100">
             {filteredHistory.map((item) => (
-              <div key={`${item.table}-${item.id}-${item.approved_at}`} className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                <p className="font-semibold text-slate-800">{item.label}</p>
-                <p className="text-xs uppercase text-slate-500">{item.table}</p>
-                <p className="text-xs text-slate-600">Faculty: {item.faculty?.name || "Unknown"}</p>
-                <p className="text-xs text-slate-500">Approved at: {new Date(item.approved_at).toLocaleString()}</p>
+              <div key={`${item.table}-${item.id}-${item.approved_at}`} className="px-5 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">{item.label}</p>
+                    <p className="text-xs text-slate-500">{item.faculty?.name || "Unknown"} &middot; <span className="uppercase">{item.table}</span></p>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-slate-400">{new Date(item.approved_at).toLocaleDateString()}</span>
+                </div>
               </div>
             ))}
-            {!filteredHistory.length && <p className="text-sm text-slate-500">No approval history found for selected filters.</p>}
+            {!filteredHistory.length && <p className="py-8 text-center text-sm text-slate-400">No approval history found for selected filters.</p>}
           </div>
         </section>
       )}
 
       {activeTab === "faculty" && (
-        <section className="rounded border border-slate-300 bg-white p-4">
-          <h2 className="mb-3 text-xl font-semibold text-slate-700">Faculty Directory</h2>
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-5 py-4">
+            <h2 className="text-lg font-bold text-slate-800">Faculty Directory</h2>
+            <p className="text-xs text-slate-400">{filteredFaculty.length} records</p>
+          </div>
+          <div className="grid grid-cols-1 gap-px bg-slate-100 lg:grid-cols-2">
             {filteredFaculty.map((f) => (
-              <div key={f.id} className="flex items-center justify-between rounded border border-slate-200 bg-slate-50 p-3">
+              <div key={f.id} className="flex items-center justify-between bg-white px-5 py-3">
                 <div className="flex items-center gap-3">
-                  <img src={f.photo_url || adminBasePhoto} alt={f.name} className="h-12 w-12 rounded object-cover" />
+                  <img src={f.photo_url || adminBasePhoto} alt={f.name} className="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-100" />
                   <div>
-                    <p className="font-semibold text-slate-800">{f.name}</p>
-                    <p className="text-xs text-slate-600">{f.department}</p>
+                    <p className="text-sm font-semibold text-slate-800">{f.name}</p>
+                    <p className="text-[11px] text-slate-500">{f.designation} &middot; {f.department}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => removeFacultyMutation.mutate(f.id)}
                   disabled={removeFacultyMutation.isPending}
-                  className="rounded bg-rose-600 px-3 py-1 text-xs font-semibold text-white"
+                  className="rounded-md border border-rose-200 bg-white px-3 py-1 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
                 >
-                  Remove Faculty
+                  Remove
                 </button>
               </div>
             ))}
-            {!filteredFaculty.length && <p className="text-sm text-slate-500">No faculty entries found for selected filters.</p>}
+            {!filteredFaculty.length && <p className="col-span-full bg-white py-8 text-center text-sm text-slate-400">No faculty entries found for selected filters.</p>}
           </div>
         </section>
       )}
@@ -722,55 +716,42 @@ export default function AdminPanel({ initialTab = "pending" }) {
         </section>
       )}
 
-      <section className="rounded border border-slate-300 bg-white p-4">
-        <h2 className="mb-3 text-xl font-semibold text-slate-700">Audit Timeline</h2>
-        <div className="space-y-2">
-          {auditData.map((item) => (
-            <div key={item.id} className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-              <p className="font-semibold uppercase text-slate-600">{item.table_name} - {item.action}</p>
-              <p className="text-xs text-slate-500">{new Date(item.created_at).toLocaleString()}</p>
-            </div>
-          ))}
-          {!auditData.length && <p className="text-sm text-slate-500">No audit logs yet.</p>}
-        </div>
-      </section>
-
       {selectedRequest && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/45 p-4" onClick={closeDetails}>
-          <div className="max-h-[85vh] w-full max-w-3xl overflow-auto rounded-xl border border-slate-300 bg-white p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-            <div className="mb-4 flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={closeDetails}>
+          <div className="max-h-[85vh] w-full max-w-3xl overflow-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="mb-5 flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
-                <p className="text-xs font-semibold uppercase text-slate-500">{selectedRequest.table} request</p>
-                <h3 className="text-2xl font-bold text-slate-800">{labelForRow(selectedRequest.row)}</h3>
-                <p className="text-sm text-slate-600">Faculty: {selectedRequest.faculty?.name || "Unknown"}</p>
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{selectedRequest.table}</span>
+                <h3 className="mt-2 text-xl font-bold text-slate-800">{labelForRow(selectedRequest.row)}</h3>
+                <p className="mt-1 text-sm text-slate-500">Faculty: {selectedRequest.faculty?.name || "Unknown"}</p>
               </div>
-              <button onClick={closeDetails} className="rounded border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-700">
+              <button onClick={closeDetails} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50">
                 Close
               </button>
             </div>
 
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               {Object.entries(selectedRequest.row).map(([key, value]) => (
-                <div key={key} className="rounded border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{humanizeKey(key)}</p>
-                  <p className="break-all text-sm text-slate-800">{displayValue(value)}</p>
+                <div key={key} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{humanizeKey(key)}</p>
+                  <p className="mt-0.5 break-all text-sm text-slate-800">{displayValue(value)}</p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
               {selectedProfileId && (
                 <a
                   href={`/faculty/${selectedProfileId}?preview=review&table=${encodeURIComponent(selectedRequest.table)}&request=${encodeURIComponent(selectedRequest.row.id)}&label=${encodeURIComponent(labelForRow(selectedRequest.row))}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded border border-blue-700 px-3 py-2 text-sm font-semibold text-blue-700"
+                  className="rounded-lg border border-[#9d2235]/30 px-4 py-2 text-xs font-bold text-[#9d2235] transition hover:bg-[#9d2235]/5"
                 >
                   Open Review Page
                 </a>
               )}
               <button
-                className="rounded bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
                 disabled={actionBusy}
                 onClick={() => {
                   approveMutation.mutate({ table: selectedRequest.table, id: selectedRequest.row.id });
@@ -780,7 +761,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
                 Approve
               </button>
               <button
-                className="rounded bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
+                className="rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-50"
                 disabled={actionBusy}
                 onClick={() => {
                   openRejectDialog({ table: selectedRequest.table, id: selectedRequest.row.id, closeDetailsAfter: true });
@@ -789,7 +770,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
                 Reject
               </button>
               <button
-                className="rounded border border-slate-400 px-3 py-2 text-sm font-semibold text-slate-700"
+                className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
                 disabled={actionBusy}
                 onClick={() => {
                   removeDetailMutation.mutate({ table: selectedRequest.table, id: selectedRequest.row.id });
@@ -804,23 +785,23 @@ export default function AdminPanel({ initialTab = "pending" }) {
       )}
 
       {rejectDialog.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={closeRejectDialog}>
-          <div className="w-full max-w-lg rounded-xl border border-slate-300 bg-white p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={closeRejectDialog}>
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <h3 className="text-lg font-bold text-slate-800">Reject Request</h3>
-            <p className="mt-1 text-sm text-slate-600">Add an optional remark for the faculty member. You can also reject without a remark.</p>
+            <p className="mt-1 text-sm text-slate-500">Add an optional remark for the faculty member.</p>
             <textarea
               rows={4}
               maxLength={500}
               value={rejectDialog.remark}
               onChange={(event) => setRejectDialog((prev) => ({ ...prev, remark: event.target.value }))}
-              className="mt-3 w-full rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-rose-400 focus:outline-none"
+              className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
               placeholder="Optional remark (max 500 characters)"
             />
-            <p className="mt-1 text-right text-xs text-slate-500">{rejectDialog.remark.length}/500</p>
-            <div className="mt-4 flex flex-wrap justify-end gap-2">
+            <p className="mt-1 text-right text-[10px] text-slate-400">{rejectDialog.remark.length}/500</p>
+            <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
               <button
                 type="button"
-                className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
                 onClick={closeRejectDialog}
                 disabled={rejectMutation.isPending}
               >
@@ -828,7 +809,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
               </button>
               <button
                 type="button"
-                className="rounded border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700"
+                className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
                 onClick={() => submitReject("")}
                 disabled={rejectMutation.isPending}
               >
@@ -836,7 +817,7 @@ export default function AdminPanel({ initialTab = "pending" }) {
               </button>
               <button
                 type="button"
-                className="rounded bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
+                className="rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-50"
                 onClick={() => submitReject(rejectDialog.remark)}
                 disabled={rejectMutation.isPending}
               >

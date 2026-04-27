@@ -12,6 +12,7 @@ import AdminQueryPage from "./pages/AdminQueryPage";
 import StudentAchievementsPage from "./pages/StudentAchievementsPage";
 import StudentSubmitPage from "./pages/StudentSubmitPage";
 import AdminStudentPage from "./pages/AdminStudentPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
 import { facultyApi } from "./api/facultyApi";
@@ -56,6 +57,7 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/admin-login" element={<AdminLoginPage />} />
         <Route path="/viewer" element={<FacultyListPage />} />
         <Route path="/faculty" element={<FacultyListPage />} />
         <Route path="/faculty/:id" element={<FacultyProfilePage />} />
@@ -66,7 +68,7 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardHomePage />} />
         </Route>
 
-        <Route element={<ProtectedRoute roles={["admin"]} />}>
+        <Route element={<ProtectedRoute roles={["admin"]} redirectTo="/admin-login" />}>
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/history" element={<AdminHistoryPage />} />
           <Route path="/admin/faculty" element={<AdminFacultyPage />} />

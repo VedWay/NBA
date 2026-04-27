@@ -26,13 +26,14 @@ export function AuthProvider({ children }) {
     return response;
   };
 
-  const loginWithGoogle = async (googleData) => {
+  const loginWithGoogle = async (googleData, { loginAsStudent = false } = {}) => {
     try {
       const payload = await authApi.googleLogin({
         idToken: googleData.idToken,
         email: googleData.user.email,
         displayName: googleData.user.displayName,
         photoURL: googleData.user.photoURL,
+        loginAsStudent,
       });
       
       if (payload?.access_token) {
