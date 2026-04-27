@@ -61,8 +61,10 @@ export default function App() {
         <Route path="/viewer" element={<FacultyListPage />} />
         <Route path="/faculty" element={<FacultyListPage />} />
         <Route path="/faculty/:id" element={<FacultyProfilePage />} />
-        <Route path="/student-desk" element={<StudentSubmitPage />} />
         <Route path="/students" element={<StudentAchievementsPage />} />
+        <Route element={<ProtectedRoute roles={["student"]} redirectTo="/login" />}>
+          <Route path="/student-desk" element={<StudentSubmitPage />} />
+        </Route>
 
         <Route element={<ProtectedRoute roles={["faculty", "admin"]} />}>
           <Route path="/dashboard" element={<DashboardHomePage />} />

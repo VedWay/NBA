@@ -180,6 +180,7 @@
   align-items: flex-end;
   justify-content: space-between;
   margin-bottom: 32px;
+  margin-left: 24px;
 }
 
 .section-title {
@@ -201,6 +202,7 @@
   border-radius: 12px;
   padding: 20px 24px;
   margin-bottom: 20px;
+  margin-left: 18px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -374,6 +376,8 @@
 /* Responsive */
 @media (max-width: 900px) {
   .stats__grid { grid-template-columns: repeat(2, 1fr); }
+  .section-header,
+  .filters { margin-left: 0; }
 }
 
 @media (max-width: 600px) {
