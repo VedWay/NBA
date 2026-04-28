@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AchievementCard from '../components/AchievementCard';
 import { studentApi } from '../api/studentApi';
-import { Trophy, Medal, Award, Building2, Globe, Search, X, Upload, ArrowDown, GraduationCap, RefreshCw, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { Trophy, Medal, Building2, Globe, Search, X, Upload, ArrowDown, GraduationCap, RefreshCw, AlertCircle, Loader2, FileText } from 'lucide-react';
 import { generateStudentAchievementsPDF } from '../utils/pdfGenerator';
 import './StudentAchievementsPage.css';
 
@@ -24,6 +24,26 @@ const StudentAchievementsPage = () => {
   const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const categoryCount = useMemo(() => {
+    const derived = new Set(
+      achievements
+        .map((item) => item.category_name?.toLowerCase())
+        .filter(Boolean)
+    ).size;
+    return derived || CATEGORIES.length - 1;
+  }, [achievements]);
+
+  const levelCount = useMemo(() => {
+    const derived = new Set(
+      achievements
+        .map((item) => item.level?.toLowerCase())
+        .filter(Boolean)
+    ).size;
+    return derived || LEVELS.length - 1;
+  }, [achievements]);
+
+  const studentsRecognized = stats.find((item) => item.label === 'Students Recognized')?.value || '0';
 
   useEffect(() => {
     const fetchAchievements = async () => {
@@ -74,33 +94,45 @@ const StudentAchievementsPage = () => {
   return (
     <div className="home">
       {/* Hero */}
-      <section className="hero">
-        <div className="hero__pattern"></div>
-        <div className="mx-auto w-full max-w-7xl px-4 md:px-8 hero__inner">
-          <div className="hero__badge">
-            <Award size={14} className="mr-1" /> Est. 1887
-          </div>
-          <h1 className="hero__title">
-            Student Achievements<br />
-            <em>Portal</em>
-          </h1>
-          <p className="hero__sub">
+      <section className="campus-hero relative overflow-hidden px-4 py-14 md:px-8 md:py-20">
+        <div className="pointer-events-none absolute -left-20 top-0 h-56 w-56 rounded-full bg-[#c3475b]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 bottom-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="relative mx-auto max-w-7xl">
+          <p className="campus-kicker">Students</p>
+          <h1 className="mt-3 text-4xl font-extrabold text-white md:text-5xl">Student Achievements</h1>
+          <p className="mt-3 max-w-2xl text-base text-slate-200 md:text-lg">
             Celebrating the extraordinary accomplishments of VJTI students across academics,
             sports, technology, and culture.
           </p>
-          <div className="hero__actions">
+          <div className="mt-7 flex flex-wrap gap-3 text-sm">
+            <span className="flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-4 py-1.5 font-semibold text-white backdrop-blur-sm">
+              <Trophy className="h-4 w-4" />
+              {loading ? "Loading..." : `${achievements.length} Achievements`}
+            </span>
+            <span className="flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 font-semibold text-slate-100 backdrop-blur-sm">
+              <GraduationCap className="h-4 w-4" />
+              {studentsRecognized} Students Recognized
+            </span>
+            <span className="flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 font-semibold text-slate-100 backdrop-blur-sm">
+              <Building2 className="h-4 w-4" />
+              {categoryCount} Categories
+            </span>
+            <span className="flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 font-semibold text-slate-100 backdrop-blur-sm">
+              <Globe className="h-4 w-4" />
+              {levelCount} Levels
+            </span>
+          </div>
+          <div className="mt-7 flex flex-wrap gap-3">
             <button className="btn btn--primary" onClick={() => navigate('/student-desk')}>
               <Upload size={18} /> Submit Achievement
             </button>
-            <button className="btn btn--outline" onClick={() => document.getElementById('achievements').scrollIntoView({ behavior: 'smooth' })}>
+            <button
+              className="btn btn--outline"
+              onClick={() => document.getElementById('achievements').scrollIntoView({ behavior: 'smooth' })}
+            >
               <ArrowDown size={18} /> Browse All
             </button>
           </div>
-        </div>
-        <div className="hero__wave">
-          <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
-            <path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="var(--off-white)" />
-          </svg>
         </div>
       </section>
 
